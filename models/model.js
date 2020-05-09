@@ -100,7 +100,7 @@ const PasscodesScheam = new schema({
 const LockUsersSchema = new schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true},
-  assignedLockId: { type: String }
+  assignedLockId: { type: Number }
 })
 
 const AuthSchema = new schema({});
@@ -125,6 +125,6 @@ UserSchema.methods.isValidPassword = async function (password) {
 const UserModel = mongoose.model("user", UserSchema);
 const LocksModel = mongoose.model("locks", LocksSchema);
 const PasscodesModel = mongoose.model("passcodes", PasscodesScheam);
-const LockUsersModel = mongoose.model("lockUsers", LockUsersSchema);
+const LockUsersModel = mongoose.model("lockusers", LockUsersSchema);
 
 module.exports = { UserModel, LocksModel, PasscodesModel, LockUsersModel };
