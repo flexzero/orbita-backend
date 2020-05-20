@@ -81,7 +81,7 @@ const LocksSchema = new schema({
     required: true,
     unique: true,
   },
-});
+}, {versionKey: false });
 
 const PasscodesScheam = new schema({
   lockId: { type: Number, required: true },
@@ -95,15 +95,17 @@ const PasscodesScheam = new schema({
   startDate: { type: Number, require: true },
   receiverUsername: { type: String, require: true },
   status: { type: Number, require: true },
-});
+}, { versionKey: false });
 
 const LockUsersSchema = new schema({
   firstName: { type: String, required: true },
-  lastName: { type: String, required: true},
+  lastName: { type: String, required: true },
   assignedLockId: { type: Number }
 })
 
-const AuthSchema = new schema({});
+const GatewaySchema = new schema({
+
+});
 
 UserSchema.pre("save", async function (next) {
   const user = this;

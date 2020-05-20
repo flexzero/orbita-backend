@@ -9,6 +9,12 @@ const storage = require("node-persist");
 
 const router = express.Router();
 
+const axiosConfig = {
+  headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+  },
+};
+
 router.post(
   "/signup",
   passport.authenticate("signup", { session: false }),
@@ -49,7 +55,7 @@ router.get("/authenticate", async (req, res, next) => {
     const authRes = await axios.post(
       urls.getAccessToken,
       qs.stringify(config),
-      axiosConfig.headers
+      axiosConfig
     );
 
     if (!authRes.data.errmsg) {
@@ -58,8 +64,7 @@ router.get("/authenticate", async (req, res, next) => {
       await storage.setItem("loggedInDate", Date.now());
       res.send({ success: "success" });
     } else {
-      res.send(authRes.data);
-      console.log("Something went wrong");
+       throw new Error(authRes.data.errmsg);
     }
   } catch (error) {
     console.log(error);

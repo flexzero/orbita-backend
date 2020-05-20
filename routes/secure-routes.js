@@ -3,10 +3,14 @@ const axios = require("axios");
 const qs = require("querystring");
 const config = require("../config");
 const urls = require("../urls");
+const RemoteManage = require("../RemoteManage/RemoteMange");
 const storage = require("node-persist");
+const equal = require("fast-deep-equal");
 const { LocksModel, PasscodesModel, LockUsersModel } = require("../models/model");
 
 const router = express.Router();
+const rManager = new RemoteManage();
+rManager.init();
 
 const axiosConfig = {
   headers: {
@@ -15,191 +19,101 @@ const axiosConfig = {
 };
 
 router.post("/init", async (req, res, next) => {
-  const { client_id: clientId } = config;
-  await storage.init();
-  let { access_token: accessToken } = await storage.getItem("authData");
-  let postData = {
-    clientId,
-    accessToken,
-    pageNo: 1,
-    pageSize: 20,
-    date: Date.now(),
-  };
+  res.status(200).send({ initialized: true });
+});
+
+router.get("/locks", async (req, res, next) => {
   try {
-    const locksDataRes = await axios.post(
-      urls.getLocks,
-      qs.stringify(postData),
-      axiosConfig.headers
-    );
-    let {
-      data: { list: locks },
-    } = locksDataRes;
-    await LocksModel.insertMany(locks, { ordered: false });
+    let locks = await rManager.getLocks();
+    let locksFromDB = await LocksModel.find({}, { _id: 0 });
+    if (!equal(locks, locksFromDB)) {
+      const removedLocks = await LocksModel.deleteMany({})
+      if (removedLocks.ok) {
+        await LocksModel.insertMany(locks, { ordered: false });
+      }
+    }
+    let locksData = await LocksModel.find({});
+    let lockUsersData = await LockUsersModel.find({});
+    let normalizedData = locksData.map((lockData) => {
+      return { [lockData.lockId]: lockData };
+    });
+    let normalizedLockUsersData = lockUsersData.map((lockUserData) => {
+      return { [lockUserData.id]: lockUserData }
+    });
+    let lockUserIds = lockUsersData.map((lockUserData) => lockUserData.id);
+    let locksIds = locksData.map((lockData) => lockData.lockId);
+    res.json({ locks: { byId: Object.assign({}, ...normalizedData), allIds: locksIds }, users: { byId: Object.assign({}, ...normalizedLockUsersData), allIds: lockUserIds } });
   } catch (err) {
-    console.log(err);
+    return next(err)
   }
 
+});
+
+router.get("/passcodes", async (req, res, next) => {
   async function getLockIds() {
     let query = await LocksModel.find({}).select("lockId").exec();
     return query;
   }
 
   let lockIds = await (await getLockIds()).map((data) => data.lockId);
-  let lockIdsPost = lockIds
-    .map((id) => ({
-      clientId,
-      accessToken,
-      lockId: id,
-      pageNo: 1,
-      pageSize: 20,
-      date: Date.now(),
-    }))
-    .map((postData) =>
-      axios.post(
-        urls.getAllCreatedPasscode,
-        qs.stringify(postData),
-        axiosConfig
-      )
-    );
 
   try {
-    const response = await axios.all(lockIdsPost);
-    let mappedPasscodeResponse = response
-      .map((passcodeData) => passcodeData.data.list)
-      .flat();
-    console.log(mappedPasscodeResponse);
-    await PasscodesModel.insertMany(mappedPasscodeResponse, { ordered: false });
-    return res.json({ initialized: true });
+    let passcodes = await rManager.getPasscodesFromLocks(lockIds);
+    let passcodesFromDB = await PasscodesModel.find({}, { _id: 0 });
+    if (!equal(passcodes, passcodesFromDB)) {
+      let deletedPasscodes = await PasscodesModel.deleteMany({});
+      if (deletedPasscodes.ok) {
+
+        let insertedPasscode = await PasscodesModel.insertMany(passcodes, { ordered: false });
+      }
+    }
+    let passcodesData = await PasscodesModel.find({});
+    let normalizedData = passcodesData.map((passcodeData) => {
+      return { [passcodeData.keyboardPwdId]: passcodeData };
+    });
+    let passcodeIds = passcodesData.map(
+      (passcodeData) => passcodeData.keyboardPwdId
+    );
+    res.json({ byId: Object.assign({}, ...normalizedData), allIds: passcodeIds });
   } catch (error) {
-    return console.log(error);
-    // return res.json({ error: err });
+    return next(error);
   }
 });
 
-router.get("/locks", async (req, res, next) => {
-  let locksData = await LocksModel.find({});
-  let lockUsersData = await LockUsersModel.find({});
-  let normalizedData = locksData.map((lockData) => {
-    return { [lockData.lockId]: lockData };
-  });
-  let normalizedLockUsersData = lockUsersData.map((lockUserData) => {
-    return { [lockUserData.id]: lockUserData }
-  });
-  let lockUserIds = lockUsersData.map((lockUserData) => lockUserData.id);
-  let locksIds = locksData.map((lockData) => lockData.lockId);
-  res.json({ locks: { byId: Object.assign({}, ...normalizedData), allIds: locksIds }, users: { byId: Object.assign({}, ...normalizedLockUsersData), allIds: lockUserIds } });
-});
-
-router.get("/passcodes", async (req, res, next) => {
-  let passcodesData = await PasscodesModel.find({});
-  let normalizedData = passcodesData.map((passcodeData) => {
-    return { [passcodeData.keyboardPwdId]: passcodeData };
-  });
-  let passcodeIds = passcodesData.map(
-    (passcodeData) => passcodeData.keyboardPwdId
-  );
-  res.json({ byId: Object.assign({}, ...normalizedData), allIds: passcodeIds });
-});
-
 router.post("/addpasscode", async (req, res, next) => {
-  const { client_id: clientId } = config;
-  await storage.init();
-  let { access_token: accessToken } = await storage.getItem("authData");
-  const { lockId, passcode, passcodeName, startDate, endDate } = req.body;
-
-  const postData = qs.stringify({
-    clientId,
-    accessToken,
-    lockId,
-    keyboardPwd: passcode,
-    keyboardPwdName: passcodeName,
-    startDate,
-    endDate,
-    addType: 2,
-    date: Date.now(),
-  });
 
   try {
-    const responseData = await axios.post(
-      urls.addPasscode,
-      postData,
-      axiosConfig
-    );
-
-    console.log("response data from addpasscode endpoint: ", responseData);
-
-    const {
-      data: { keyboardPwdId },
-    } = responseData;
-    if (keyboardPwdId) {
-      const rePostData = qs.stringify({
-        clientId,
-        accessToken,
-        lockId,
-        pageNo: 1,
-        pageSize: 20,
-        date: Date.now(),
-      });
-      try {
-        const responseData = await axios.post(
-          urls.getAllCreatedPasscode,
-          rePostData,
-          axiosConfig
-        );
-        if (!responseData.data.errcode) {
-          let currentPasscode = responseData.data.list.find(passcode => passcode.keyboardPwdId === keyboardPwdId);
-          let isIserted = await PasscodesModel.insertMany(currentPasscode);
-          res.json({ keyboardPwdId });
-
-        }
-        else throw new Error(responseData.data.errmsg);
-      } catch (error) {
-        return res.json({error: error});
+    const newKeyboardPwdId = await rManager.addPasscode(req.body);
+    const { lockId } = req.body;
+    const allPasscodes = await rManager.getPasscodesOfLock(lockId);
+    const newPasscodeToAdd = allPasscodes.find((passcode) => passcode.keyboardPwdId === newKeyboardPwdId);
+    if (newPasscodeToAdd) {
+      const isInserted = await PasscodesModel.create(newPasscodeToAdd);
+      if (isInserted) {
+        res.status(200).send({ keyboardPwdId: newKeyboardPwdId });
+      } else {
+        throw new Error("failed to add passcode to database");
       }
     } else {
-      throw new Error(responseData.data.errmsg);
+      throw new Error("Passcode not found on server");
     }
-  } catch (err) {
-    return res.json({ error: err });
+  } catch (error) {
+    return next(error);
   }
 });
 
 router.post("/deletepasscode", async (req, res, next) => {
-  const { client_id: clientId } = config;
-  await storage.init();
-  let { access_token: accessToken } = await storage.getItem("authData");
   const { lockId, keyboardPwdId } = req.body;
-  const postData = qs.stringify({
-    clientId,
-    accessToken,
-    lockId,
-    keyboardPwdId,
-    deleteType: 2,
-    date: Date.now(),
-  });
   try {
-    const response = await axios.post(
-      urls.deletePasscode,
-      postData,
-      axiosConfig
-    );
-    console.log(response.data);
-    if (response.data.errcode === 0) {
-      const isDelete = await PasscodesModel.findOneAndDelete({
-        keyboardPwdId: keyboardPwdId,
-      });
-      if (!isDelete) {
-        throw new NotFoundError("Passcode NOT_FOUND with id: ", keyboardPwdId);
-      } else {
-        res.json({
-          deletedPasscodeId: keyboardPwdId,
-        });
-      }
+    await rManager.deletePasscode(lockId, keyboardPwdId);
+    const isDelete = await PasscodesModel.findOneAndDelete({ keyboardPwdId: keyboardPwdId });
+    if (isDelete) {
+      res.status(200).send({ deletedPasscodeId: keyboardPwdId });
     } else {
-      throw new Error(data.errmsg);
+      throw new NotFoundError("Passcode NOT_FOUND with id: ", keyboardPwdId);
     }
   } catch (error) {
-    res.json(error);
+    return next(error);
   }
 });
 
@@ -210,10 +124,10 @@ router.post("/addlockuser", async (req, res, next) => {
     if (isAdded) {
       res.json({ success: `user ${firstName} ${lastName} has been added successfully` });
     } else {
-      throw new Error("Error")
+      throw new Error("Failed to add lock user.");
     }
   } catch (err) {
-    res.json({ error: err })
+    return next(err);
   }
 });
 
@@ -265,32 +179,17 @@ router.post("/editpasscode", async (req, res, next) => {
       }
     }
   } catch (err) {
-    return console.log(err);
+    return next(err);
   }
 });
 
 router.post("/getunlockrecords", async (req, res, next) => {
-  const { client_id: clientId } = config;
-  await storage.init();
-  let { access_token: accessToken } = await storage.getItem("authData");
   const { lockId } = req.body;
-
-  const postParams = qs.stringify({
-    clientId,
-    accessToken,
-    lockId,
-    pageNo: 1,
-    pageSize: 20,
-    date: Date.now()
-  });
-
   try {
-    const response = await axios.post(urls.getUnlockRecords, postParams, axiosConfig);
-    if (response.data.hasOwnProperty("list")) {
-      res.status(200).json({ status: "success", data: response.data.list});
-    }
-  } catch (err) {
-    return console.log(err);
+    const unlockRecords = rManager.getUnlockRecords(lockId);
+    res.status(200).send({ status: 200, data: unlockRecords });
+  } catch (error) {
+    return next(error);
   }
 });
 

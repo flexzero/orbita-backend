@@ -6,13 +6,15 @@ const JWTstrategy = require("passport-jwt").Strategy;
 
 const ExtractJWT = require("passport-jwt").ExtractJwt;
 
+var opts = {};
+opts.jwtFromRequest = ExtractJWT.fromAuthHeaderAsBearerToken();
+opts.secretOrKey = "top_secret";
+opts.issuer = "accounts.example.com";
+opts.audience = "oursite.net";
+
 passport.use(
   new JWTstrategy(
-    {
-      secretOrKey: "top_secret",
-
-      jwtFromRequest: ExtractJWT.fromUrlQueryParameter("secret_token")
-    },
+    opts,
     async (token, done) => {
       try {
         return done(null, token.user);
