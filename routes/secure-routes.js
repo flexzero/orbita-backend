@@ -12,12 +12,6 @@ const router = express.Router();
 const rManager = new RemoteManage();
 rManager.init();
 
-const axiosConfig = {
-  headers: {
-    "Content-Type": "application/x-www-form-urlencoded",
-  },
-};
-
 router.post("/init", async (req, res, next) => {
   res.status(200).send({ initialized: true });
 });
@@ -144,11 +138,28 @@ router.post("/assignlock", async (req, res, next) => {
 });
 
 router.post("/editpasscode", async (req, res, next) => {
-  const { client_id: clientId } = config;
-  await storage.init();
-  let { access_token: accessToken } = await storage.getItem("authData");
-  const { lockId, keyboardPwdId, keyboardPwdName, keyboardPwd, startDate, endDate } = req.body;
-
+  // const { client_id: clientId } = config;
+  // await storage.init();
+  // let { access_token: accessToken } = await storage.getItem("authData");
+  const { lockId, keyboardPwdId, keyboardPwd, startDate, endDate } = req.body;
+  try {
+    const passcodeUpdateData = await rManager.editPasscode(lockId, keyboardPwdId, keyboardPwd, startDate, endDate);
+    const { keyboardPwd:updatedKeyboardPwd, startDate: updatedStartDate, endDate: updatedEndDate } = passcodeUpdateData;
+    const filter = { keyboardPwdId};
+    const update = { keyboardPwd: updatedKeyboardPwd, startDate: updatedStartDate, endDate: updatedEndDate };
+    const updatedPasscode = await PasscodesModel.findOneAndUpdate(filter, update, { new: true, useFindAndModify: false});
+    if(updatedPasscode.keyboardPwd === updatedKeyboardPwd, updatedPasscode.startDate === updatedStartDate, updatedPasscode.endDate === updatedEndDate ) {
+      res.status(200).json({
+        status: "success",
+        message: "passcode has been updated successfully",
+        data: passcode
+      });
+    }  else {
+      throw new Error("Unknown Error");
+    }
+  } catch (error) {
+    return next(error);
+  }
   const postData = qs.stringify({
     clientId,
     accessToken,
@@ -186,8 +197,9 @@ router.post("/editpasscode", async (req, res, next) => {
 router.post("/getunlockrecords", async (req, res, next) => {
   const { lockId } = req.body;
   try {
-    const unlockRecords = rManager.getUnlockRecords(lockId);
-    res.status(200).send({ status: 200, data: unlockRecords });
+    const unlockRecords = await rManager.getUnlockRecords(lockId);
+    console.log(unlockRecords);
+    res.status(200).send({data: unlockRecords });
   } catch (error) {
     return next(error);
   }

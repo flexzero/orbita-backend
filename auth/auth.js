@@ -6,19 +6,18 @@ const JWTstrategy = require("passport-jwt").Strategy;
 
 const ExtractJWT = require("passport-jwt").ExtractJwt;
 
-var opts = {};
-opts.jwtFromRequest = ExtractJWT.fromAuthHeaderAsBearerToken();
-opts.secretOrKey = "top_secret";
-opts.issuer = "accounts.example.com";
-opts.audience = "oursite.net";
-
 passport.use(
   new JWTstrategy(
-    opts,
-    async (token, done) => {
+    {
+      jwtFromRequest: ExtractJWT.fromAuthHeaderAsBearerToken(),
+      secretOrKey: "top_secret"
+    },
+    (jwtPayload, done) => {
+      console.log("The authentication token: ", jwtPayload);
       try {
-        return done(null, token.user);
+        return done(null, jwtPayload.user);
       } catch (error) {
+        console.log(error);
         done(error);
       }
     }
@@ -35,7 +34,7 @@ passport.use(
     async (username, password, done) => {
       try {
         const user = await UserModel.create({ username, password });
-        
+
 
         return done(null, user);
       } catch (error) {
@@ -61,7 +60,7 @@ passport.use(
           console.log("user found");
         }
 
-        const validate = await  user.isValidPassword(password);
+        const validate = await user.isValidPassword(password);
         if (!validate) {
           return done(null, false, { message: "Wrong Password" });
         } else {

@@ -199,6 +199,33 @@ class RemoteManage {
             throw new Error(error);
         }
     }
+
+    async editPasscode(lockId, keyboardPwdId, keyboardPwd, startDate, endDate) {
+        const { clientId, accessToken } = this;
+
+        const dataToPost = qs.stringify({
+            clientId,
+            accessToken,
+            lockId,
+            keyboardPwdId,
+            newKeyboardPwd: keyboardPwd,
+            startDate,
+            endDate,
+            changeType: 2,
+            date: Date.now(),
+        })
+
+        try {
+            const response = await axios.post(urls.changePasscode, dataToPost, this.axiosConfig);
+            if(!this.isError(response.data)) {
+                return { keyboardPwd, startDate, endDate };
+            } else {
+                throw new Error(response.data.errmsg);
+            }
+        } catch (error) {
+            throw new Error(error);
+        }
+    }
 }
 
 module.exports = RemoteManage;
