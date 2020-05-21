@@ -7,6 +7,7 @@ const urls = {
   deletePasscode: "https://api.ttlock.com/v3/keyboardPwd/delete",
   changePasscode: "https://api.ttlock.com/v3/keyboardPwd/change",
   getUnlockRecords: "https://api.ttlock.com/v3/lockRecord/list",
+  getGateways: "https://api.ttlock.com/v3/gateway/list",
 };
 
 module.exports = urls;

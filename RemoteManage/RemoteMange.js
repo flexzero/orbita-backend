@@ -93,8 +93,6 @@ class RemoteManage {
     async addPasscode(postData) {
         const { lockId, passcode, passcodeName, startDate, endDate } = postData;
 
-
-
         const dataToPost = qs.stringify({
             clientId: this.clientId,
             accessToken: this.accessToken,
@@ -163,7 +161,6 @@ class RemoteManage {
         });
         try {
             const response = await axios.post(urls.deletePasscode, dataToPost, this.axiosConfig);
-            console.log(response);
             if (!this.isError(response.data)) {
                 return;
             } else {
@@ -217,7 +214,7 @@ class RemoteManage {
 
         try {
             const response = await axios.post(urls.changePasscode, dataToPost, this.axiosConfig);
-            if(!this.isError(response.data)) {
+            if (!this.isError(response.data)) {
                 return { keyboardPwd, startDate, endDate };
             } else {
                 throw new Error(response.data.errmsg);
@@ -225,6 +222,26 @@ class RemoteManage {
         } catch (error) {
             throw new Error(error);
         }
+    }
+
+    async getGateways() {
+        const { clientId, accessToken } = this;
+
+        const dataToPost = qs.stringify({
+            clientId,
+            accessToken,
+            pageNo: 10,
+            pageSize: 100
+        });
+        try {
+            const response = await axios.post(urls.getGateways, dataToPost, this.axiosConfig);
+            if (!this.isError(response)) return response.data.list;
+        } catch (error) {
+            throw new Error(response.data.errmsg);
+        }
+
+
+
     }
 }
 

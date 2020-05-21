@@ -12,10 +12,6 @@ const router = express.Router();
 const rManager = new RemoteManage();
 rManager.init();
 
-router.post("/init", async (req, res, next) => {
-  res.status(200).send({ initialized: true });
-});
-
 router.get("/locks", async (req, res, next) => {
   try {
     let locks = await rManager.getLocks();
@@ -144,17 +140,17 @@ router.post("/editpasscode", async (req, res, next) => {
   const { lockId, keyboardPwdId, keyboardPwd, startDate, endDate } = req.body;
   try {
     const passcodeUpdateData = await rManager.editPasscode(lockId, keyboardPwdId, keyboardPwd, startDate, endDate);
-    const { keyboardPwd:updatedKeyboardPwd, startDate: updatedStartDate, endDate: updatedEndDate } = passcodeUpdateData;
-    const filter = { keyboardPwdId};
+    const { keyboardPwd: updatedKeyboardPwd, startDate: updatedStartDate, endDate: updatedEndDate } = passcodeUpdateData;
+    const filter = { keyboardPwdId };
     const update = { keyboardPwd: updatedKeyboardPwd, startDate: updatedStartDate, endDate: updatedEndDate };
-    const updatedPasscode = await PasscodesModel.findOneAndUpdate(filter, update, { new: true, useFindAndModify: false});
-    if(updatedPasscode.keyboardPwd === updatedKeyboardPwd, updatedPasscode.startDate === updatedStartDate, updatedPasscode.endDate === updatedEndDate ) {
+    const updatedPasscode = await PasscodesModel.findOneAndUpdate(filter, update, { new: true, useFindAndModify: false });
+    if (updatedPasscode.keyboardPwd === updatedKeyboardPwd, updatedPasscode.startDate === updatedStartDate, updatedPasscode.endDate === updatedEndDate) {
       res.status(200).json({
         status: "success",
         message: "passcode has been updated successfully",
         data: passcode
       });
-    }  else {
+    } else {
       throw new Error("Unknown Error");
     }
   } catch (error) {
@@ -199,10 +195,26 @@ router.post("/getunlockrecords", async (req, res, next) => {
   try {
     const unlockRecords = await rManager.getUnlockRecords(lockId);
     console.log(unlockRecords);
-    res.status(200).send({data: unlockRecords });
+    res.status(200).send({ data: unlockRecords });
   } catch (error) {
     return next(error);
   }
 });
 
+router.get("/islockonline", async (req, res, next) => {
+  try {
+    const gatewaysFromServer = await rManager.getGateways();
+
+  } catch (error) {
+    return new Error(error);
+  }
+});
+
+router.get("/getrooms", async (req, res, next) => {
+  /* TODO: fetching the rooms list and store it in local database */
+});
+
+router.get("/maproomtolock", async (req, res, next) => {
+  /* TODO: mapping the room to a lock */
+});
 module.exports = router;

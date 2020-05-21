@@ -30,7 +30,7 @@ router.post("/login", async (req, res, next) => {
   passport.authenticate("login", async (err, user, info) => {
     try {
       if (err || !user) {
-        const error = new Error("An Error occurred");
+        const error = new Error("User not found");
         return next(error);
       }
       req.login(user, { session: false }, async (error) => {

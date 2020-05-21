@@ -22,8 +22,6 @@ app.use("/api", routes);
 
 app.use('/api/secure', passport.authenticate('jwt', {session: false}), secureRoute);
 
-// app.use("/api/secure", secureRoute);
-
 app.use(function (err, req, res, next) {
   console.log(err);
   res.status(err.status || 500);

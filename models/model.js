@@ -97,15 +97,20 @@ const PasscodesScheam = new schema({
   status: { type: Number, require: true },
 }, { versionKey: false });
 
+const GatewaySchema = new schema({
+  gatewayId: { type: Number, require: true},
+  gatewayMac: { type: String, required: true},
+  gatewayVersion: { type: Number, required: true},
+  networkName: { type: String, required: true },
+  lockNum: { type: Number, required: true},
+  isOnline: { type: Number, required: true}
+}, {versionKey: false});
+
 const LockUsersSchema = new schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   assignedLockId: { type: Number }
 })
-
-const GatewaySchema = new schema({
-
-});
 
 UserSchema.pre("save", async function (next) {
   const user = this;
@@ -128,5 +133,6 @@ const UserModel = mongoose.model("user", UserSchema);
 const LocksModel = mongoose.model("locks", LocksSchema);
 const PasscodesModel = mongoose.model("passcodes", PasscodesScheam);
 const LockUsersModel = mongoose.model("lockusers", LockUsersSchema);
+const GatewayModel = mongoose.model("gateways", GatewaySchema);
 
-module.exports = { UserModel, LocksModel, PasscodesModel, LockUsersModel };
+module.exports = { UserModel, LocksModel, PasscodesModel, LockUsersModel, GatewaySchema };
