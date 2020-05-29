@@ -11,7 +11,7 @@ const router = express.Router();
 
 const axiosConfig = {
   headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
+    "Content-Type": "application/x-www-form-urlencoded",
   },
 };
 
@@ -41,7 +41,7 @@ router.post("/login", async (req, res, next) => {
         const token = jwt.sign({ user: body }, "top_secret");
 
         setTimeout(() => {
-          return res.json({username: user.username, secret_token: token });
+          return res.json({ username: user.username, secret_token: token });
         }, 3000);
       });
     } catch (error) {
@@ -51,10 +51,20 @@ router.post("/login", async (req, res, next) => {
 });
 
 router.get("/authenticate", async (req, res, next) => {
+  const { env: { CLIENT_ID, CLIENT_SECRET, USERNAME, PASSWORD } } = process;
+
+  const dataToPost = qs.stringify({
+    client_id: CLIENT_ID,
+    client_secret: CLIENT_SECRET,
+    username: USERNAME,
+    password: PASSWORD
+  });
+
+
   try {
-    const authRes = await axios.post(
+    const response = await axios.post(
       urls.getAccessToken,
-      qs.stringify(config),
+      dataToPost,
       axiosConfig
     );
 
@@ -64,7 +74,7 @@ router.get("/authenticate", async (req, res, next) => {
       await storage.setItem("loggedInDate", Date.now());
       res.send({ success: "success" });
     } else {
-       throw new Error(authRes.data.errmsg);
+      throw new Error(authRes.data.errmsg);
     }
   } catch (error) {
     console.log(error);

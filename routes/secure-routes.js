@@ -134,9 +134,7 @@ router.post("/assignlock", async (req, res, next) => {
 });
 
 router.post("/editpasscode", async (req, res, next) => {
-  // const { client_id: clientId } = config;
-  // await storage.init();
-  // let { access_token: accessToken } = await storage.getItem("authData");
+
   const { lockId, keyboardPwdId, keyboardPwd, startDate, endDate } = req.body;
   try {
     const passcodeUpdateData = await rManager.editPasscode(lockId, keyboardPwdId, keyboardPwd, startDate, endDate);

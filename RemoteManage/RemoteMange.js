@@ -3,6 +3,10 @@ const axios = require("axios");
 const qs = require("querystring");
 const urls = require("../urls");
 const storage = require("node-persist");
+const md5 = require("md5");
+const { TTLockAuthModel } = require("../models/model");
+
+
 class RemoteManage {
     constructor() {
         this.axiosConfig = {
@@ -17,13 +21,50 @@ class RemoteManage {
 
     async init() {
         await storage.init();
-        let { access_token: accessToken } = await storage.getItem("authData");
+        const [{ access_token: accessToken, expires_in: expiresIn, loggedin_at: loggedInAt }] = await TTLockAuthModel.find({}) || {};
         this.accessToken = accessToken;
+        if (accessToken === undefined) {
+            // TODO: code to fetch brand new access token
+        } else if (Date.now() > (loggedInAt + expiresIn)) {
+            // TODO: check for expired token and refresh
+        }
+    }
+
+    async netfonePortalAuth() {
+        
+    }
+
+    async TTLockAuth() {
+        const { env: { TTLOCK_CLIENT_ID, TTLOCK_CLIENT_SECRET, TTLOCK_USERNAME, TTLOCK_PASSWORD, TTLOCK_REDIRECT_URI } } = process;
+
+        const dataToPost = qs.stringify({
+            client_id: TTLOCK_CLIENT_ID,
+            client_secret: TTLOCK_CLIENT_SECRET,
+            grant_type: "password",
+            username: TTLOCK_USERNAME.toString(),
+            password: md5(TTLOCK_PASSWORD),
+            redirect_uri: TTLOCK_REDIRECT_URI.toString()
+        });
+
+        console.log("data to post: ", dataToPost);
+
+        try {
+            const response = await axios.post(urls.getAccessToken, dataToPost, this.axiosConfig);
+            if (!this.isError(response.data)) {
+                console.log(response.data);
+            } else {
+                throw new Error(response.data.errmsg);
+            }
+        } catch (error) {
+            console.log(error);
+            throw new Error(error);
+        }
+
     }
 
 
     isError(response) {
-
+        console.log(response);
         if (response !== undefined) {
             if (response['errcode'] === undefined) {
                 return false;
@@ -234,14 +275,12 @@ class RemoteManage {
             pageSize: 100
         });
         try {
-            const response = await axios.post(urls.getGateways, dataToPost, this.axiosConfig);
+            const response = await axios.get(urls.getGateways, dataToPost, this.axiosConfig);
             if (!this.isError(response)) return response.data.list;
+            else throw new Error(response.data.errmsg);
         } catch (error) {
             throw new Error(response.data.errmsg);
         }
-
-
-
     }
 }
 

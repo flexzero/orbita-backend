@@ -81,7 +81,7 @@ const LocksSchema = new schema({
     required: true,
     unique: true,
   },
-}, {versionKey: false });
+}, { versionKey: false });
 
 const PasscodesScheam = new schema({
   lockId: { type: Number, required: true },
@@ -98,19 +98,50 @@ const PasscodesScheam = new schema({
 }, { versionKey: false });
 
 const GatewaySchema = new schema({
-  gatewayId: { type: Number, require: true},
-  gatewayMac: { type: String, required: true},
-  gatewayVersion: { type: Number, required: true},
+  gatewayId: { type: Number, require: true },
+  gatewayMac: { type: String, required: true },
+  gatewayVersion: { type: Number, required: true },
   networkName: { type: String, required: true },
-  lockNum: { type: Number, required: true},
-  isOnline: { type: Number, required: true}
-}, {versionKey: false});
+  lockNum: { type: Number, required: true },
+  isOnline: { type: Number, required: true }
+}, { versionKey: false });
 
 const LockUsersSchema = new schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   assignedLockId: { type: Number }
-})
+});
+
+
+const TTLockAuthDataSchema = new schema({
+  access_token: { type: String, required: true },
+  refresh_token: { type: String, required: true },
+  uid: { type: Number, required: false },
+  openid: { type: Number, required: true },
+  scope: { type: String, required: true },
+  token_type: { type: String, required: true },
+  expires_in: { type: Number, required: true },
+  loggedin_at: { type: Number, require: true }
+});
+
+const NetfoneAuthDataSchema = new schema({
+  accessToken: { type: String, required: true }
+});
+
+const ReservationsDataSchema = new schema({
+   NetfoneCustomer: { type: String, required: true},
+   AccountId: { type: Number, required: true},
+   ResId: { type: Number, required: true },
+   AreaId: { type: Number, require: true },
+   AreaName: { type: String, required: true},
+   Status: { type: String, required: true }
+});
+
+const HotelRoomsSchema = new schema({
+  area: { type: Number, required: true},
+  area_id: { type: Number, required: true},
+  cat_id: {type: Number, required: true}
+});
 
 UserSchema.pre("save", async function (next) {
   const user = this;
@@ -134,5 +165,9 @@ const LocksModel = mongoose.model("locks", LocksSchema);
 const PasscodesModel = mongoose.model("passcodes", PasscodesScheam);
 const LockUsersModel = mongoose.model("lockusers", LockUsersSchema);
 const GatewayModel = mongoose.model("gateways", GatewaySchema);
+const TTLockAuthModel = mongoose.model('ttlockauth', TTLockAuthDataSchema);
+const NetfoneAuthModel = mongoose.model('netfonauth', NetfoneAuthDataSchema);
+const ReservationsModel = mongoose.model('reservations', ReservationsDataSchema);
+const HotelRoomsModel = mongoose.model('rooms', HotelRoomsSchema);
 
-module.exports = { UserModel, LocksModel, PasscodesModel, LockUsersModel, GatewaySchema };
+module.exports = { UserModel, LocksModel, PasscodesModel, LockUsersModel, GatewayModel, TTLockAuthModel, NetfoneAuthModel, ReservationsModel, HotelRoomsModel };
