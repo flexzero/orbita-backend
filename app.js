@@ -77,7 +77,7 @@ const sqsApp = Consumer.create({
           console.log("Reservation exists");
         }
       } else {
-
+        // Todo: putback message in queue
         console.log("Not Quest.Maribyrnong but: ", NetfoneCustomer);
       }
 
