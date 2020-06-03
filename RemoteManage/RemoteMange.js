@@ -20,18 +20,18 @@ class RemoteManage {
     }
 
     async init() {
-        await storage.init();
+        console.log(await TTLockAuthModel.find({}));
         const [{ access_token: accessToken, expires_in: expiresIn, loggedin_at: loggedInAt }] = await TTLockAuthModel.find({}) || {};
         this.accessToken = accessToken;
         if (accessToken === undefined) {
-            // TODO: code to fetch brand new access token
+           
         } else if (Date.now() > (loggedInAt + expiresIn)) {
-            // TODO: check for expired token and refresh
+            
         }
     }
 
-    async netfonePortalAuth() {
-        
+    async NetfonePortalAuth() {
+        // TODO: fetching Neftone access token for current loggedin user.
     }
 
     async TTLockAuth() {
@@ -46,12 +46,10 @@ class RemoteManage {
             redirect_uri: TTLOCK_REDIRECT_URI.toString()
         });
 
-        console.log("data to post: ", dataToPost);
-
         try {
             const response = await axios.post(urls.getAccessToken, dataToPost, this.axiosConfig);
+            console.log(response);
             if (!this.isError(response.data)) {
-                console.log(response.data);
             } else {
                 throw new Error(response.data.errmsg);
             }
@@ -63,8 +61,7 @@ class RemoteManage {
     }
 
 
-    isError(response) {
-        console.log(response);
+    isError(response) { 
         if (response !== undefined) {
             if (response['errcode'] === undefined) {
                 return false;
@@ -152,8 +149,6 @@ class RemoteManage {
                 this.axiosConfig
             );
 
-            console.log("The response: ", response.data);
-
             if (!this.isError(response.data)) {
                 const { data: { keyboardPwdId } } = response;
                 return keyboardPwdId;
@@ -208,7 +203,6 @@ class RemoteManage {
                 throw new Error(response.data.errmsg);
             }
         } catch (error) {
-            console.log("error: ", error);
             throw new Error(error);
         }
     }

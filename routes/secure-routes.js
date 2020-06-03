@@ -192,7 +192,6 @@ router.post("/getunlockrecords", async (req, res, next) => {
   const { lockId } = req.body;
   try {
     const unlockRecords = await rManager.getUnlockRecords(lockId);
-    console.log(unlockRecords);
     res.status(200).send({ data: unlockRecords });
   } catch (error) {
     return next(error);

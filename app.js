@@ -53,57 +53,57 @@ sqs.getQueueAttributes({ QueueUrl: SQS_URL }, function (err, data) {
   }
 });
 
-const sqsApp = Consumer.create({
-  queueUrl: SQS_URL,
-  handleMessage: async (message) => {
+// const sqsApp = Consumer.create({
+//   queueUrl: SQS_URL,
+//   handleMessage: async (message) => {
 
-    let { Body: recievedMessage } = message;
-    recievedMessage = JSON.parse(recievedMessage);
-    let { ResId, Status, NetfoneCustomer } = recievedMessage;
-    try {
-      if (NetfoneCustomer === "Quest.Maribyrnong") {
-        let reservationExists = await ReservationsModel.find({ ResId }, { _id: 0 });
-        if (reservationExists.length === 0) {
-          console.log(recievedMessage);
-          console.log("New reservation: ", recievedMessage);
-          recievedMessage.AreaName === "" ? recievedMessage.AreaName = "Unspecified" : ""
-          await ReservationsModel.create(recievedMessage);
-        } else if (reservationExists.length > 0 && reservationExists[0].Status !== Status) {
-          console.log("Reservation status changed");
-          let filter = { ResId };
-          let update = { Status };
-          await ReservationsModel.findOneAndUpdate(filter, update, { new: true, useFindAndModify: false });
-        } else {
-          console.log("Reservation exists");
-        }
-      } else {
-        // Todo: putback message in queue
-        console.log("Not Quest.Maribyrnong but: ", NetfoneCustomer);
-      }
+//     let { Body: recievedMessage } = message;
+//     recievedMessage = JSON.parse(recievedMessage);
+//     let { ResId, Status, NetfoneCustomer } = recievedMessage;
+//     try {
+//       if (NetfoneCustomer === "Quest.Maribyrnong") {
+//         let reservationExists = await ReservationsModel.find({ ResId }, { _id: 0 });
+//         if (reservationExists.length === 0) {
+//           console.log(recievedMessage);
+//           console.log("New reservation: ", recievedMessage);
+//           recievedMessage.AreaName === "" ? recievedMessage.AreaName = "Unspecified" : ""
+//           await ReservationsModel.create(recievedMessage);
+//         } else if (reservationExists.length > 0 && reservationExists[0].Status !== Status) {
+//           console.log("Reservation status changed");
+//           let filter = { ResId };
+//           let update = { Status };
+//           await ReservationsModel.findOneAndUpdate(filter, update, { new: true, useFindAndModify: false });
+//         } else {
+//           console.log("Reservation exists");
+//         }
+//       } else {
+//         // Todo: putback message in queue
+//         console.log("Not Quest.Maribyrnong but: ", NetfoneCustomer);
+//       }
 
-    }
-    catch (error) {
-      console.log(error);
-      throw new Error(error);
-    }
+//     }
+//     catch (error) {
+//       console.log(error);
+//       throw new Error(error);
+//     }
 
-  },
-  sqs: new AWS.SQS()
-});
+//   },
+//   sqs: new AWS.SQS()
+// });
 
-sqsApp.on('error', (err) => {
-  console.error(err.message);
-});
+// sqsApp.on('error', (err) => {
+//   console.error(err.message);
+// });
 
-sqsApp.on('processing_error', (err) => {
-  console.error(err.message);
-});
+// sqsApp.on('processing_error', (err) => {
+//   console.error(err.message);
+// });
 
-sqsApp.on('timeout_error', (err) => {
-  console.error(err.message);
-});
+// sqsApp.on('timeout_error', (err) => {
+//   console.error(err.message);
+// });
 
-sqsApp.start();
+// sqsApp.start();
 
 
 app.listen(PORT, () => {

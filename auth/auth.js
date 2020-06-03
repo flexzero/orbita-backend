@@ -1,6 +1,7 @@
 const passport = require("passport");
+const mongoose = require("mongoose");
 const localStrategy = require("passport-local").Strategy;
-const { UserModel } = require("../models/model");
+const { UserModel, TTLockAuthModel, NetfoneAuthModel } = require("../models/model");
 
 const JWTstrategy = require("passport-jwt").Strategy;
 
@@ -28,14 +29,24 @@ passport.use(
   "signup",
   new localStrategy(
     {
-      usernameField: "username",
-      password: "password"
+      username: "username",
+      password: "password",
+      passReqToCallback: true
     },
-    async (username, password, done) => {
+    async (req, username, password, done) => {
+      console.log(req);
+      let { ttlockUsername, ttlockPassword, ttlockClientId, ttlockClientSecret, netfoneUsername, netfonePassword } = req.query;
+      console.log(ttlockUsername, ttlockPassword, ttlockClientId, ttlockClientSecret, netfoneUsername, netfonePassword);
       try {
-        const user = await UserModel.create({ username, password });
-
-
+        const ttlockAuth = await TTLockAuthModel.create({
+          _id: new mongoose.Types.ObjectId(),
+          ttlockUsername,
+          ttlockPassword,
+          client_id: ttlockClientId,
+          client_secret: ttlockClientSecret,
+        });
+        const netfoneAuth = await NetfoneAuthModel.create({ _id: new mongoose.Types.ObjectId(), netfoneUsername, netfonePassword });
+        const user = await UserModel.create({ _id: new mongoose.Types.ObjectId(), username, password, ttlockAuthData: ttlockAuth._id, netfoneAuthData: netfoneAuth._id });
         return done(null, user);
       } catch (error) {
         done(error);

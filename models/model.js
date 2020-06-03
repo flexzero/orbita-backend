@@ -12,6 +12,8 @@ const UserSchema = new schema({
     type: String,
     requierd: true,
   },
+  ttlockAuthData: {type: mongoose.Schema.Types.ObjectId, ref: 'TTLockAuth'},
+  netfoneAuthData: {type: mongoose.Schema.Types.ObjectId, ref: 'NetfoneAuth'}
 });
 
 const LocksSchema = new schema({
@@ -81,6 +83,7 @@ const LocksSchema = new schema({
     required: true,
     unique: true,
   },
+  user: { type: mongoose.Types.ObjectId, ref: "Users"}
 }, { versionKey: false });
 
 const PasscodesScheam = new schema({
@@ -95,6 +98,7 @@ const PasscodesScheam = new schema({
   startDate: { type: Number, require: true },
   receiverUsername: { type: String, require: true },
   status: { type: Number, require: true },
+  user: { type: mongoose.Types.ObjectId, ref: "Users"}
 }, { versionKey: false });
 
 const GatewaySchema = new schema({
@@ -106,26 +110,26 @@ const GatewaySchema = new schema({
   isOnline: { type: Number, required: true }
 }, { versionKey: false });
 
-const LockUsersSchema = new schema({
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
-  assignedLockId: { type: Number }
-});
-
-
 const TTLockAuthDataSchema = new schema({
-  access_token: { type: String, required: true },
-  refresh_token: { type: String, required: true },
-  uid: { type: Number, required: false },
-  openid: { type: Number, required: true },
-  scope: { type: String, required: true },
-  token_type: { type: String, required: true },
-  expires_in: { type: Number, required: true },
-  loggedin_at: { type: Number, require: true }
+  ttlockUsername: { type: String, required: true},
+  ttlockPassword: { type: String, required: true},
+  client_id: { type: String, required: true },
+  client_secret: { type: String, required: true },
+  access_token: { type: String, required: false, default: null  },
+  refresh_token: { type: String, required: false, default: null, },
+  uid: { type: Number, required: false,  default: null },
+  openid: { type: Number, required: false, default: null },
+  scope: { type: String, required: false, default: null },
+  token_type: { type: String, required: false, default: null },
+  expires_in: { type: Number, required: false, default: null },
+  loggedin_at: { type: Number, require: false, default: null }
 });
 
 const NetfoneAuthDataSchema = new schema({
-  accessToken: { type: String, required: true }
+  netfoneUsername: { type: String, required: true},
+  netfonePassword: { type: String, required: true},
+  accessToken: { type: String, required: false, default: null },
+  loggedin_at: { type: String, required: false, default: null },
 });
 
 const ReservationsDataSchema = new schema({
@@ -136,6 +140,7 @@ const ReservationsDataSchema = new schema({
    AreaName: { type: String, required: true},
    Status: { type: String, required: true }
 });
+
 
 const HotelRoomsSchema = new schema({
   area: { type: Number, required: true},
@@ -160,14 +165,13 @@ UserSchema.methods.isValidPassword = async function (password) {
   return compare;
 };
 
-const UserModel = mongoose.model("user", UserSchema);
-const LocksModel = mongoose.model("locks", LocksSchema);
-const PasscodesModel = mongoose.model("passcodes", PasscodesScheam);
-const LockUsersModel = mongoose.model("lockusers", LockUsersSchema);
-const GatewayModel = mongoose.model("gateways", GatewaySchema);
-const TTLockAuthModel = mongoose.model('ttlockauth', TTLockAuthDataSchema);
-const NetfoneAuthModel = mongoose.model('netfonauth', NetfoneAuthDataSchema);
-const ReservationsModel = mongoose.model('reservations', ReservationsDataSchema);
-const HotelRoomsModel = mongoose.model('rooms', HotelRoomsSchema);
+const UserModel = mongoose.model("Users", UserSchema);
+const LocksModel = mongoose.model("Locks", LocksSchema);
+const PasscodesModel = mongoose.model("Passcodes", PasscodesScheam);
+const GatewayModel = mongoose.model("Gateways", GatewaySchema);
+const TTLockAuthModel = mongoose.model('TTLockAuth', TTLockAuthDataSchema);
+const NetfoneAuthModel = mongoose.model('NetfoneAuth', NetfoneAuthDataSchema);
+const ReservationsModel = mongoose.model('Reservations', ReservationsDataSchema);
+const HotelRoomsModel = mongoose.model('Rooms', HotelRoomsSchema);
 
-module.exports = { UserModel, LocksModel, PasscodesModel, LockUsersModel, GatewayModel, TTLockAuthModel, NetfoneAuthModel, ReservationsModel, HotelRoomsModel };
+module.exports = { UserModel, LocksModel, PasscodesModel, GatewayModel, TTLockAuthModel, NetfoneAuthModel, ReservationsModel, HotelRoomsModel };
