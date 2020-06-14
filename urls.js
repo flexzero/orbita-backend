@@ -8,7 +8,7 @@ const urls = {
   changePasscode: "https://api.ttlock.com/v3/keyboardPwd/change",
   getUnlockRecords: "https://api.ttlock.com/v3/lockRecord/list",
   getGateways: "https://api.ttlock.com/v3/gateway/list",
-  getNetfoneAccessToken: "https://api.netfone.io/graphql",
+  netfoneGraphQL: "https://api.netfone.io/graphql",
 };
 
 module.exports = urls;

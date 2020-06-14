@@ -14,7 +14,6 @@ passport.use(
       secretOrKey: "top_secret"
     },
     (jwtPayload, done) => {
-      console.log("The authentication token: ", jwtPayload);
       try {
         return done(null, jwtPayload.user);
       } catch (error) {
@@ -35,18 +34,19 @@ passport.use(
     },
     async (req, username, password, done) => {
       console.log(req);
-      let { ttlockUsername, ttlockPassword, ttlockClientId, ttlockClientSecret, netfoneUsername, netfonePassword } = req.query;
-      console.log(ttlockUsername, ttlockPassword, ttlockClientId, ttlockClientSecret, netfoneUsername, netfonePassword);
+      let { ttlockUsername, ttlockPassword, ttlockClientId, ttlockClientSecret, netfoneUsername, netfonePassword, redirectUri } = req.query;
       try {
         const ttlockAuth = await TTLockAuthModel.create({
           _id: new mongoose.Types.ObjectId(),
           ttlockUsername,
           ttlockPassword,
+          redirect_uri: redirectUri,
           client_id: ttlockClientId,
           client_secret: ttlockClientSecret,
         });
         const netfoneAuth = await NetfoneAuthModel.create({ _id: new mongoose.Types.ObjectId(), netfoneUsername, netfonePassword });
-        const user = await UserModel.create({ _id: new mongoose.Types.ObjectId(), username, password, ttlockAuthData: ttlockAuth._id, netfoneAuthData: netfoneAuth._id });
+        const user = await UserModel.create({ _id: new mongoose.Types.ObjectId(), username, password, 
+         });
         return done(null, user);
       } catch (error) {
         done(error);
@@ -68,14 +68,12 @@ passport.use(
         if (!user) {
           return done(null, false, { message: "User not found" });
         } else {
-          console.log("user found");
         }
 
         const validate = await user.isValidPassword(password);
         if (!validate) {
           return done(null, false, { message: "Wrong Password" });
         } else {
-          console.log("password matched");
         }
         return done(null, user, { message: "Logged in successfully" });
       } catch (error) {

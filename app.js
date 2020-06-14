@@ -1,15 +1,21 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
+const Agenda = require("agenda");
 const app = express();
 const passport = require("passport");
 const cors = require("cors");
-const AWS = require("aws-sdk");
-const { Consumer } = require('sqs-consumer');
-const { ReservationsModel } = require('./models/model')
+const amqp = require('amqplib/callback_api');
+const socketIO = require('socket.io');
+
+
 require('dotenv').config();
 
 mongoose.set('useCreateIndex', true);
+mongoose.set('useNewUrlParser', true);
+mongoose.set('useFindAndModify', false);
+mongoose.set('useCreateIndex', true);
+mongoose.set('useUnifiedTopology', true);
 
 app.use(cors());
 
@@ -23,6 +29,8 @@ MONGO_USERNAME === "" && MONGO_PASSWORD === "" ? mongoConnectStr = `mongodb://${
 mongoose.connect(mongoConnectStr, { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.connection.on("error", (error) => console.log(error));
 mongoose.Promise = global.Promise;
+
+const agenda = new Agenda({ db: { address: mongoConnectStr } });
 
 require("./auth/auth");
 
@@ -41,71 +49,53 @@ app.use(function (err, req, res, next) {
   res.send(err.toString());
 });
 
-AWS.config.update({ region: SQS_REGION, accessKeyId: SQS_KEY, secretAccessKey: SQS_PASSWORD });
 
-let sqs = new AWS.SQS({ apiVersion: "2012-11-05" });
-
-sqs.getQueueAttributes({ QueueUrl: SQS_URL }, function (err, data) {
-  if (err) {
-    console.log(err);
-  } else {
-    console.log("SQS Attributes: ", data);
-  }
+const socketIOServer = app.listen(PORT, () => {
+  console.log(`orbita server is running at ${PORT}`);
 });
 
-// const sqsApp = Consumer.create({
-//   queueUrl: SQS_URL,
-//   handleMessage: async (message) => {
+const io = socketIO(socketIOServer);
 
-//     let { Body: recievedMessage } = message;
-//     recievedMessage = JSON.parse(recievedMessage);
-//     let { ResId, Status, NetfoneCustomer } = recievedMessage;
-//     try {
-//       if (NetfoneCustomer === "Quest.Maribyrnong") {
-//         let reservationExists = await ReservationsModel.find({ ResId }, { _id: 0 });
-//         if (reservationExists.length === 0) {
-//           console.log(recievedMessage);
-//           console.log("New reservation: ", recievedMessage);
-//           recievedMessage.AreaName === "" ? recievedMessage.AreaName = "Unspecified" : ""
-//           await ReservationsModel.create(recievedMessage);
-//         } else if (reservationExists.length > 0 && reservationExists[0].Status !== Status) {
-//           console.log("Reservation status changed");
-//           let filter = { ResId };
-//           let update = { Status };
-//           await ReservationsModel.findOneAndUpdate(filter, update, { new: true, useFindAndModify: false });
-//         } else {
-//           console.log("Reservation exists");
-//         }
-//       } else {
-//         // Todo: putback message in queue
-//         console.log("Not Quest.Maribyrnong but: ", NetfoneCustomer);
-//       }
+let ch = null;
+let rootSocket = null;
+let messages = [];
+let i = 0;
 
-//     }
-//     catch (error) {
-//       console.log(error);
-//       throw new Error(error);
-//     }
+//this makes sure we have unique task IDs when starting an stopping rhe server
+let baseTaskID = Math.round((Date.now() - 1511098000000) / 1000);
 
-//   },
-//   sqs: new AWS.SQS()
-// });
-
-// sqsApp.on('error', (err) => {
-//   console.error(err.message);
-// });
-
-// sqsApp.on('processing_error', (err) => {
-//   console.error(err.message);
-// });
-
-// sqsApp.on('timeout_error', (err) => {
-//   console.error(err.message);
-// });
-
-// sqsApp.start();
+amqp.connect('amqp://localhost', function (error, conn) {
+  if (error) {
+    console.log(error);
+    throw new Error(error);
+  }
+  conn.createChannel(function (error, channel) {
+    if (error) {
+      console.log(error);
+      throw new Error(error);
+    }
+    ch = channel;
+    ch.consume('reservations', function (msg) {
+      let messageObj = JSON.parse(msg.content.toString());
+      console.log(messageObj.NefoneCustomer);
+      setTimeout(() => {
+        ch.ack(msg);
+      });
+    })
+  });
+});
 
 
-app.listen(PORT, () => {
-  console.log(`orbita server is running at ${PORT}`);
+console.log('Server started');
+setInterval(() => i++, 2000);
+
+
+io.on("connection", (socket) => {
+  console.log("Connection opened");
+    setInterval(() => {
+      socket.emit("newTask", {
+        taskName: `Task ${baseTaskID + i}`,
+        taskID: baseTaskID + i
+    })
+    }, 5000);
 });

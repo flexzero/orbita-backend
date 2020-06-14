@@ -1,10 +1,8 @@
-const config = require("../config");
 const axios = require("axios");
 const qs = require("querystring");
 const urls = require("../urls");
-const storage = require("node-persist");
 const md5 = require("md5");
-const { TTLockAuthModel } = require("../models/model");
+const { UserModel, TTLockAuthModel, NetfoneAuthModel } = require("../models/model");
 
 
 class RemoteManage {
@@ -14,54 +12,30 @@ class RemoteManage {
                 "Content-Type": "application/x-www-form-urlencoded",
             },
         };
-        const { client_id: clientId } = config;
-        this.clientId = clientId;
-
     }
 
-    async init() {
-        console.log(await TTLockAuthModel.find({}));
-        const [{ access_token: accessToken, expires_in: expiresIn, loggedin_at: loggedInAt }] = await TTLockAuthModel.find({}) || {};
-        this.accessToken = accessToken;
-        if (accessToken === undefined) {
-           
-        } else if (Date.now() > (loggedInAt + expiresIn)) {
-            
-        }
-    }
-
-    async NetfonePortalAuth() {
-        // TODO: fetching Neftone access token for current loggedin user.
-    }
-
-    async TTLockAuth() {
-        const { env: { TTLOCK_CLIENT_ID, TTLOCK_CLIENT_SECRET, TTLOCK_USERNAME, TTLOCK_PASSWORD, TTLOCK_REDIRECT_URI } } = process;
-
-        const dataToPost = qs.stringify({
-            client_id: TTLOCK_CLIENT_ID,
-            client_secret: TTLOCK_CLIENT_SECRET,
-            grant_type: "password",
-            username: TTLOCK_USERNAME.toString(),
-            password: md5(TTLOCK_PASSWORD),
-            redirect_uri: TTLOCK_REDIRECT_URI.toString()
-        });
-
+    async identifyUser(userId) {
         try {
-            const response = await axios.post(urls.getAccessToken, dataToPost, this.axiosConfig);
-            console.log(response);
-            if (!this.isError(response.data)) {
-            } else {
-                throw new Error(response.data.errmsg);
+            let currentUser = await UserModel.findOne({ _id: userId });
+            let currentUserTTLockAcc = await TTLockAuthModel.findOne({ _id: currentUser.ttlockAuthData });
+            let currentUserNetfoneAcc = await NetfoneAuthModel.findOne({ _id: currentUser.netfoneAuthData });
+            let { client_id: clientId, access_token: TTLockAccessToken } = currentUserTTLockAcc;
+            let { accessToken: netfoneAccessToken } = currentUserNetfoneAcc;
+            return {
+                ttlockAuthData: {
+                    clientId,
+                    TTLockAccessToken
+                },
+                netfoneAuthData: {
+                    netfoneAccessToken
+                }
             }
         } catch (error) {
-            console.log(error);
             throw new Error(error);
         }
-
     }
 
-
-    isError(response) { 
+    isError(response) {
         if (response !== undefined) {
             if (response['errcode'] === undefined) {
                 return false;
@@ -72,11 +46,13 @@ class RemoteManage {
         }
     }
 
-    async getLocks() {
+    async getLocks(requestingUser) {
+        let authData = await this.identifyUser(requestingUser);
+        const { ttlockAuthData: { clientId, TTLockAccessToken: accessToken } } = authData;
         try {
             let postData = qs.stringify({
-                clientId: this.clientId,
-                accessToken: this.accessToken,
+                clientId,
+                accessToken,
                 pageNo: 1,
                 pageSize: 20,
                 date: Date.now()
@@ -100,8 +76,7 @@ class RemoteManage {
         }
     }
 
-    async getPasscodesFromLocks(lockIds) {
-        const { clientId, accessToken } = this;
+    async getPasscodesFromLocks(lockIdsc) {
         const lockIdsPost = lockIds
             .map((id) => ({
                 clientId,
@@ -259,21 +234,75 @@ class RemoteManage {
         }
     }
 
-    async getGateways() {
-        const { clientId, accessToken } = this;
+    async getGateways(requestingUser) {
+        let authData = await this.identifyUser(requestingUser);
+        console.log("authData: ", authData);
+        const { ttlockAuthData: { clientId, TTLockAccessToken: accessToken } } = authData;
 
         const dataToPost = qs.stringify({
             clientId,
             accessToken,
-            pageNo: 10,
-            pageSize: 100
+            pageNo: 1,
+            pageSize: 100,
+            date: Date.now()
         });
         try {
-            const response = await axios.get(urls.getGateways, dataToPost, this.axiosConfig);
+            const response = await axios.post(urls.getGateways, dataToPost, this.axiosConfig);
+            console.log("The data: ", response.data);
             if (!this.isError(response)) return response.data.list;
             else throw new Error(response.data.errmsg);
         } catch (error) {
             throw new Error(response.data.errmsg);
+        }
+    }
+
+
+    async getRooms(userId) {
+        let authData = await this.identifyUser(userId);
+        const { netfoneAuthData: { netfoneAccessToken: accessToken } } = authData;
+
+        const header = {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+            }
+        }
+        const dataToPost = JSON.stringify({
+            query: 'query {\n    getRooms {\n        area\n        area_id\n        cat_id\n    }\n}',
+            variables: {}
+        });
+
+        try {
+            const response = await axios.post(urls.netfoneGraphQL, dataToPost, header);
+            const { data: { data: { getRooms: rooms } } } = response;
+            return rooms;
+        } catch (error) {
+            throw new Error(error);
+        }
+    }
+
+    async getReservations(userId) {
+        let authData = await this.identifyUser(userId);
+        const { netfoneAuthData: {  netfoneAccessToken: accessToken } } = authData;
+
+        const header = {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${accessToken}`
+            }
+        }
+
+        const dataToPost = JSON.stringify({
+            query: 'query ($input: ReservationsGetInput!) {\n    getReservations(input: $input) {\n        res_id\n        room {\n            area\n            area_id\n        }\n        nights\n        arrive\n        total_rate\n        status\n    }\n}',
+            variables: {"input":{"created_from":"2020-02-22T17:11:57+00:00"}
+        }});
+
+        try {
+            const response = await axios.post(urls.netfoneGraphQL, dataToPost, header);
+            let {data: { data: { getReservations }}} = response;
+            return getReservations;
+        } catch (error) {
+            throw new Error(error);
         }
     }
 }

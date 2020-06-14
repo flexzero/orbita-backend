@@ -12,8 +12,8 @@ const UserSchema = new schema({
     type: String,
     requierd: true,
   },
-  ttlockAuthData: {type: mongoose.Schema.Types.ObjectId, ref: 'TTLockAuth'},
-  netfoneAuthData: {type: mongoose.Schema.Types.ObjectId, ref: 'NetfoneAuth'}
+  ttlockAuthData: { type: mongoose.Schema.Types.ObjectId, ref: 'TTLockAuth' },
+  netfoneAuthData: { type: mongoose.Schema.Types.ObjectId, ref: 'NetfoneAuth' }
 });
 
 const LocksSchema = new schema({
@@ -83,7 +83,7 @@ const LocksSchema = new schema({
     required: true,
     unique: true,
   },
-  user: { type: mongoose.Types.ObjectId, ref: "Users"}
+  user: { type: mongoose.Types.ObjectId, ref: "Users" }
 }, { versionKey: false });
 
 const PasscodesScheam = new schema({
@@ -98,7 +98,7 @@ const PasscodesScheam = new schema({
   startDate: { type: Number, require: true },
   receiverUsername: { type: String, require: true },
   status: { type: Number, require: true },
-  user: { type: mongoose.Types.ObjectId, ref: "Users"}
+  user: { type: mongoose.Types.ObjectId, ref: "Users" }
 }, { versionKey: false });
 
 const GatewaySchema = new schema({
@@ -111,13 +111,14 @@ const GatewaySchema = new schema({
 }, { versionKey: false });
 
 const TTLockAuthDataSchema = new schema({
-  ttlockUsername: { type: String, required: true},
-  ttlockPassword: { type: String, required: true},
+  ttlockUsername: { type: String, required: true },
+  ttlockPassword: { type: String, required: true },
   client_id: { type: String, required: true },
   client_secret: { type: String, required: true },
-  access_token: { type: String, required: false, default: null  },
+  redirect_uri: { type: String, required: true },
+  access_token: { type: String, required: false, default: null },
   refresh_token: { type: String, required: false, default: null, },
-  uid: { type: Number, required: false,  default: null },
+  uid: { type: Number, required: false, default: null },
   openid: { type: Number, required: false, default: null },
   scope: { type: String, required: false, default: null },
   token_type: { type: String, required: false, default: null },
@@ -126,26 +127,50 @@ const TTLockAuthDataSchema = new schema({
 });
 
 const NetfoneAuthDataSchema = new schema({
-  netfoneUsername: { type: String, required: true},
-  netfonePassword: { type: String, required: true},
+  netfoneUsername: { type: String, required: true },
+  netfonePassword: { type: String, required: true },
   accessToken: { type: String, required: false, default: null },
   loggedin_at: { type: String, required: false, default: null },
 });
 
+const HotelRoomsSchema = new schema({
+  user_id: { type: mongoose.Types.ObjectId, ref: "Users" },
+    username: { type: String, require: true },
+  area: { type: String, required: true, unique: true },
+  area_id: { type:String, required: true, unique: true },
+  cat_id: { type: Number, required: false, default: null },
+  
+}, {versionKey: false});
+
 const ReservationsDataSchema = new schema({
-   NetfoneCustomer: { type: String, required: true},
-   AccountId: { type: Number, required: true},
-   ResId: { type: Number, required: true },
-   AreaId: { type: Number, require: true },
-   AreaName: { type: String, required: true},
-   Status: { type: String, required: true }
+    area: { type: String, required: true, unique: true},
+    mappedLock: { type: String, required: false, unique: true, default: null},
+    area_id: { type: String, required: true, unique: true},
+    user_id: { type: mongoose.Types.ObjectId, ref: "Users" },
+    username: { type: String, require: true },
+    res_id: { type: String, required: false, unique: true, default: null},
+    nights: { type: String, required: false, default: null},
+    arrive: { type: String, required: false, default: null},
+    pin_status: { type: String, required: false, default: null },
+    total_rate: { type: String, required: false, default: null},
+    status: { type: String, required: false, default: null}
+}, { versionKey: false, ObjectId: false, _id: false, id: false});
+
+const RoomLockMap = new schema({
+  user_id: {  type: mongoose.Types.ObjectId, ref: "Users"},
+  username: { type: String, require: true },
+  area_id: { type: String, default: null },
+  lock_id: { type: String, default: null },
 });
 
-
-const HotelRoomsSchema = new schema({
-  area: { type: Number, required: true},
-  area_id: { type: Number, required: true},
-  cat_id: {type: Number, required: true}
+const ScheduledPasscode = new schema({
+  user_id: {  type: mongoose.Types.ObjectId, ref: "Users"},
+  username: { type: String, required: false },
+  res_id: { type: String, required: true},
+  mappedLock: { type: String, required: true, default: null },
+  arrive: { type: String, default: null},
+  startDate: { type: String, required: true, default: null},
+  endDate: { type: String, required: true, default: null}
 });
 
 UserSchema.pre("save", async function (next) {
@@ -173,5 +198,7 @@ const TTLockAuthModel = mongoose.model('TTLockAuth', TTLockAuthDataSchema);
 const NetfoneAuthModel = mongoose.model('NetfoneAuth', NetfoneAuthDataSchema);
 const ReservationsModel = mongoose.model('Reservations', ReservationsDataSchema);
 const HotelRoomsModel = mongoose.model('Rooms', HotelRoomsSchema);
+const RoomLockMapModel = mongoose.model('RoomLockMap', RoomLockMap);
+const ScheduledPasscodeModel = mongoose.model('ScheduledPasscode', ScheduledPasscode);
 
-module.exports = { UserModel, LocksModel, PasscodesModel, GatewayModel, TTLockAuthModel, NetfoneAuthModel, ReservationsModel, HotelRoomsModel };
+module.exports = { UserModel, LocksModel, PasscodesModel, GatewayModel, TTLockAuthModel, NetfoneAuthModel, ReservationsModel, HotelRoomsModel, RoomLockMapModel, ScheduledPasscodeModel };

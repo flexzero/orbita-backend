@@ -1,20 +1,25 @@
 const express = require("express");
 const axios = require("axios");
 const qs = require("querystring");
-const config = require("../config");
+const config = require("../");
 const urls = require("../urls");
 const RemoteManage = require("../RemoteManage/RemoteMange");
 const storage = require("node-persist");
 const equal = require("fast-deep-equal");
-const { LocksModel, PasscodesModel, LockUsersModel } = require("../models/model");
+const fs = require("fs");
+const NOW = require("../utils");
+const { LocksModel, PasscodesModel, RoomLockMapModel, HotelRoomsModel, ReservationsModel, ScheduledPasscodeModel } = require("../models/model");
+
+
+
 
 const router = express.Router();
 const rManager = new RemoteManage();
-rManager.init();
 
 router.get("/locks", async (req, res, next) => {
+  const { user: { _id: requestingUser } } = req;
   try {
-    let locks = await rManager.getLocks();
+    let locks = await rManager.getLocks(requestingUser);
     let locksFromDB = await LocksModel.find({}, { _id: 0 });
     if (!equal(locks, locksFromDB)) {
       const removedLocks = await LocksModel.deleteMany({})
@@ -23,16 +28,12 @@ router.get("/locks", async (req, res, next) => {
       }
     }
     let locksData = await LocksModel.find({});
-    let lockUsersData = await LockUsersModel.find({});
+
     let normalizedData = locksData.map((lockData) => {
       return { [lockData.lockId]: lockData };
     });
-    let normalizedLockUsersData = lockUsersData.map((lockUserData) => {
-      return { [lockUserData.id]: lockUserData }
-    });
-    let lockUserIds = lockUsersData.map((lockUserData) => lockUserData.id);
     let locksIds = locksData.map((lockData) => lockData.lockId);
-    res.json({ locks: { byId: Object.assign({}, ...normalizedData), allIds: locksIds }, users: { byId: Object.assign({}, ...normalizedLockUsersData), allIds: lockUserIds } });
+    res.json({ locks: { byId: Object.assign({}, ...normalizedData), allIds: locksIds } });
   } catch (err) {
     return next(err)
   }
@@ -106,21 +107,6 @@ router.post("/deletepasscode", async (req, res, next) => {
     return next(error);
   }
 });
-
-router.post("/addlockuser", async (req, res, next) => {
-  const { firstName, lastName } = req.query;
-  try {
-    const isAdded = await LockUsersModel.insertMany({ firstName, lastName, assignedLockId: null });
-    if (isAdded) {
-      res.json({ success: `user ${firstName} ${lastName} has been added successfully` });
-    } else {
-      throw new Error("Failed to add lock user.");
-    }
-  } catch (err) {
-    return next(err);
-  }
-});
-
 
 router.post("/assignlock", async (req, res, next) => {
   const { lockUserId, lockId } = req.query;
@@ -199,19 +185,140 @@ router.post("/getunlockrecords", async (req, res, next) => {
 });
 
 router.get("/islockonline", async (req, res, next) => {
+  const { user: { _id: requestingUser } } = req;
   try {
-    const gatewaysFromServer = await rManager.getGateways();
-
+    const gatewaysFromServer = await rManager.getGateways(requestingUser);
+    console.log(gatewaysFromServer);
+    res.status(200).send(gatewaysFromServer);
   } catch (error) {
     return new Error(error);
   }
 });
 
-router.get("/getrooms", async (req, res, next) => {
-  /* TODO: fetching the rooms list and store it in local database */
+router.get("/rooms", async (req, res, next) => {
+  const { user: { _id: requestingUser, username } } = req;
+  try {
+    let roomsFromHotel = await rManager.getRooms(requestingUser);
+
+    roomsFromHotel = roomsFromHotel.map(room => {
+      room.user_id = requestingUser;
+      room.username = username;
+      return room;
+    });
+
+    let reservationsFromHotel = await rManager.getReservations(requestingUser);
+
+    let noDeparted = reservationsFromHotel.filter(res => {
+      return res.status !== 'Departed';
+    });
+
+    let roomLockMapData = await RoomLockMapModel.find({ user_id: requestingUser });
+
+    let roomReservationsMap = roomsFromHotel.map(room => {
+      let finded = noDeparted.find(reservation => room.area_id === reservation.room.area_id);
+      if (finded) {
+        room.res_id = finded.res_id;
+        room.nights = finded.nights;
+        room.arrive = finded.arrive;
+        room.status = finded.status;
+        if (finded.status === "Arrived") {
+          room.pin_status = "Generated";
+        }
+      } else {
+        room.res_id = null;
+        room.nights = null;
+        room.arrive = null;
+        room.status = null;
+      }
+      return room;
+    }).map(data => {
+      let findedMappedLocks = roomLockMapData.find(room => data.area_id === room.area_id);
+      if (findedMappedLocks) {
+        data.mappedLock = findedMappedLocks.lock_id;
+      } else {
+        data.mappedLock = null;
+      }
+      return data;
+    });
+
+    let extractedScheduled = roomReservationsMap.filter(rrm => rrm.status !== "Arrived" && rrm.mappedLock !== null).map(es => {
+       let { user_id, username, res_id, nights, mappedLock, arrive } = es;
+       let schedulingDate = new Date(arrive);
+       schedulingDate.setHours(schedulingDate.getHours() - 1);
+       schedulingDate.setMinutes(schedulingDate.getMinutes() - schedulingDate.getMinutes());
+       schedulingDate = NOW(schedulingDate);
+       let endDate = new Date(arrive);
+       endDate.setDate(endDate.getDate() + nights);
+       endDate = NOW(endDate);
+       return { user_id, username, res_id, nights, mappedLock, arrive, startDate: schedulingDate, endDate };
+    });
+
+    let scheduledPasscodeDataFromDB = await ScheduledPasscodeModel.find({user_id: requestingUser,}, {_id: 0});
+
+    if(!equal(scheduledPasscodeDataFromDB, extractedScheduled)) {
+      await ScheduledPasscodeModel.deleteMany({user_id: requestingUser});
+      await ScheduledPasscodeModel.insertMany(extractedScheduled);
+    }
+
+    scheduledPasscodeDataFromDB = await ScheduledPasscodeModel.find({user_id: requestingUser,}, {_id: 0});
+
+    roomReservationsMap = roomReservationsMap.map(rrm => {
+      let found = scheduledPasscodeDataFromDB.find(spdfd => rrm.res_id === spdfd.res_id);
+      if(found) {
+        rrm.pin_status = `scheduled on: ${found.startDate}`;
+      }
+      if(rrm.status !== "Arrived") {
+        rrm.pin_status === `No Lock`;
+      }
+      return rrm;
+    })
+
+    let reservationsFromDB = ReservationsModel.find({ user_id: requestingUser }, { _id: 0 });
+    if (!equal(roomReservationsMap, reservationsFromDB)) {
+      await ReservationsModel.deleteMany({ user_id: requestingUser });
+      await ReservationsModel.insertMany(roomReservationsMap);
+    }
+    let reservations = await ReservationsModel.find({ user_id: requestingUser }, { _id: 0 });
+    res.status(200).send({ reservations })
+  } catch (error) {
+    throw new Error(error);
+  }
 });
 
-router.get("/maproomtolock", async (req, res, next) => {
-  /* TODO: mapping the room to a lock */
+router.post('/maplocktoroom', async (req, res, next) => {
+  const { areaId, lockId } = req.query;
+  const { user: { _id: requestingUser, username } } = req;
+  try {
+    const map = await RoomLockMapModel.findOne({ user_id: requestingUser, area_id: areaId });
+    if (map === null) {
+      await RoomLockMapModel.create({ user_id: requestingUser, username, area_id: areaId, lock_id: lockId });
+      res.status(200).send({ status: "success", message: `room id: ${areaId} successfully mapped to lock id: ${lockId}` });
+    } else {
+      throw new Error(`A lock already mapped to area_id: ${areaId}`);
+    }
+  } catch (err) {
+    throw new Error(err)
+  }
 });
+
+router.post('/updatelockmap', async (req, res, next) => {
+  const { areaId, lockId } = req.query;
+  const { user: { _id: requestingUser, username } } = req;
+  try {
+    const map = await RoomLockMapModel.findOne({ user_id: requestingUser, area_id: areaId });
+    if (map !== null) {
+      const filter = { user_id: requestingUser, area_id: areaId };
+      const update = { lock_id: lockId };
+      let updatedData = await RoomLockMapModel.updateOne(filter, update);
+      if (updatedData.ok) {
+        res.status(200).send({ status: "success", message: `room id: ${areaId} successfully mapped to lock id: ${lockId}` });
+      }
+    } else {
+      throw new Error(`lock map does not exists for room id ${areaId}`);
+    }
+  } catch (error) {
+    throw new Error(error);
+  }
+})
+
 module.exports = router;
