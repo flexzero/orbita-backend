@@ -244,13 +244,13 @@ router.get("/rooms", async (req, res, next) => {
     let extractedScheduled = roomReservationsMap.filter(rrm => rrm.status !== "Arrived" && rrm.mappedLock !== null).map(es => {
        let { user_id, username, res_id, nights, mappedLock, arrive } = es;
        let schedulingDate = new Date(arrive);
-       schedulingDate.setHours(schedulingDate.getHours() - 1);
-       schedulingDate.setMinutes(schedulingDate.getMinutes() - schedulingDate.getMinutes());
-       schedulingDate = NOW(schedulingDate);
-       let endDate = new Date(arrive);
-       endDate.setDate(endDate.getDate() + nights);
-       endDate = NOW(endDate);
-       return { user_id, username, res_id, nights, mappedLock, arrive, startDate: schedulingDate, endDate };
+        schedulingDate.setHours(schedulingDate.getHours() - 1);
+        schedulingDate.setMinutes(schedulingDate.getMinutes() - schedulingDate.getMinutes());
+        schedulingDate = NOW(schedulingDate);
+        let endDate = new Date(arrive);
+        endDate.setDate(endDate.getDate() + nights);
+        endDate = NOW(endDate);
+        return { user_id, username, res_id, nights, mappedLock, arrive, startDate: schedulingDate, endDate };
     });
 
     let scheduledPasscodeDataFromDB = await ScheduledPasscodeModel.find({user_id: requestingUser,}, {_id: 0});

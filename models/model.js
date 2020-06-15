@@ -167,10 +167,13 @@ const ScheduledPasscode = new schema({
   user_id: {  type: mongoose.Types.ObjectId, ref: "Users"},
   username: { type: String, required: false },
   res_id: { type: String, required: true},
+  date: {type: String, require: true},
   mappedLock: { type: String, required: true, default: null },
   arrive: { type: String, default: null},
+  nights: { type: Number, default: null},
   startDate: { type: String, required: true, default: null},
-  endDate: { type: String, required: true, default: null}
+  endDate: { type: String, required: true, default: null},
+
 });
 
 UserSchema.pre("save", async function (next) {

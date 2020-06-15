@@ -1,5 +1,5 @@
 const AWS = require("aws-sdk");
-const publishToQueue = require("./MQService");
+const { Consumer } = require("sqs-consumer");
 require('dotenv').config();
 
 
@@ -10,19 +10,30 @@ const CONN_URL = 'amqp://localhost';
 
 let ch = null;
 
-amqp.connect(CONN_URL, function(err, conn) {
-    conn.createChannel(function(error, channel) {
+amqp.connect(CONN_URL, function (err, conn) {
+    conn.createChannel(function (error, channel) {
         ch = channel;
     });
 });
-AWS.config.update({ region: SQS_REGION, accessKeyId: SQS_KEY, secretAccessKey: SQS_PASSWORD });
-let sqs = new AWS.SQS({ apiVersion: "2012-11-05" });
+AWS.config.update({ region: SQS_REGION, accessKeyId: SQS_KEY, secretAccessKey: SQS_PASSWORD, apiVersion: "2012-11-05" });
 
-async function sqsConsumer() {
-    let sqsQueueMessages = await sqs.receiveMessage({QueueUrl: SQS_URL}).promise();
-    let message = sqsQueueMessages.Messages[0].Body;
-    ch.sendToQueue('reservations', Buffer.from(JSON.stringify(message)));
-}
+const app = Consumer.create({
+    queueUrl: SQS_URL,
+    handleMessage: async (message) => {
+        // do some work with `message`
+        let msg = message.Body;
+        ch.sendToQueue('reservations', Buffer.from(JSON.stringify(msg)));
+    },
+    sqs: new AWS.SQS()
+});
 
-sqsConsumer();
+app.on('error', (err) => {
+    console.error(err.message);
+});
+
+app.on('processing_error', (err) => {
+    console.error(err.message);
+});
+
+app.start()
 

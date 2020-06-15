@@ -1,7 +1,6 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const bodyParser = require("body-parser");
-const Agenda = require("agenda");
 const app = express();
 const passport = require("passport");
 const cors = require("cors");
@@ -29,8 +28,6 @@ MONGO_USERNAME === "" && MONGO_PASSWORD === "" ? mongoConnectStr = `mongodb://${
 mongoose.connect(mongoConnectStr, { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.connection.on("error", (error) => console.log(error));
 mongoose.Promise = global.Promise;
-
-const agenda = new Agenda({ db: { address: mongoConnectStr } });
 
 require("./auth/auth");
 
@@ -61,7 +58,6 @@ let rootSocket = null;
 let messages = [];
 let i = 0;
 
-//this makes sure we have unique task IDs when starting an stopping rhe server
 let baseTaskID = Math.round((Date.now() - 1511098000000) / 1000);
 
 amqp.connect('amqp://localhost', function (error, conn) {
@@ -77,7 +73,7 @@ amqp.connect('amqp://localhost', function (error, conn) {
     ch = channel;
     ch.consume('reservations', function (msg) {
       let messageObj = JSON.parse(msg.content.toString());
-      console.log(messageObj.NefoneCustomer);
+      console.log(messageObj);
       setTimeout(() => {
         ch.ack(msg);
       });
