@@ -3,26 +3,16 @@ const { Consumer } = require("sqs-consumer");
 require('dotenv').config();
 
 
-const { env: { SQS_REGION, SQS_KEY, SQS_PASSWORD, SQS_URL } } = process;
+const { env: { SQS_REGION, SQS_KEY, SQS_PASSWORD} } = process;
 
-const amqp = require('amqplib/callback_api');
-const CONN_URL = 'amqp://localhost';
+const passcodeScheduleSQSURL = "https://sqs.ap-southeast-2.amazonaws.com/825974424523/orbita_passcode";
 
-let ch = null;
-
-amqp.connect(CONN_URL, function (err, conn) {
-    conn.createChannel(function (error, channel) {
-        ch = channel;
-    });
-});
 AWS.config.update({ region: SQS_REGION, accessKeyId: SQS_KEY, secretAccessKey: SQS_PASSWORD, apiVersion: "2012-11-05" });
 
 const app = Consumer.create({
-    queueUrl: SQS_URL,
+    queueUrl: passcodeScheduleSQSURL,
     handleMessage: async (message) => {
-        // do some work with `message`
-        let msg = message.Body;
-        ch.sendToQueue('reservations', Buffer.from(JSON.stringify(msg)));
+        console.log(message.Body);
     },
     sqs: new AWS.SQS()
 });

@@ -7,15 +7,16 @@ require('dotenv').config();
 const { ScheduledPasscodeModel, PasscodesModel } = require("./models/model");
 
 const passcodeScheduleSQSURL = "https://sqs.ap-southeast-2.amazonaws.com/825974424523/orbita_passcode"
-//const deadPasscodeScheduleSQSURL = "https://sqs.ap-southeast-2.amazonaws.com/825974424523/orbita_dlq"
-// Setting mongo parameters, so that deprecated mongodb functions dont required
+
 mongoose.set('useCreateIndex', true);
 mongoose.set('useNewUrlParser', true);
 mongoose.set('useFindAndModify', false);
 mongoose.set('useCreateIndex', true);
 mongoose.set('useUnifiedTopology', true);
 
-const { env: { SQS_REGION, SQS_KEY, SQS_PASSWORD, SQS_URL } } = process;
+const { env: { SQS_REGION, SQS_KEY, SQS_PASSWORD } } = process;
+
+console.log(SQS_KEY, SQS_PASSWORD);
 
 let mongoConnectStrRoot = ``
 
@@ -35,10 +36,10 @@ mongoose.Promise = global.Promise;
 let scheduledPasscodes = [
     {
         mappedLock: "1862957",
-        arrive: "2020-06-17 18:00:00",
+        arrive: "2020-06-17 19:00:00",
         nights: 1,
         startDate: "2020-06-17",
-        startHour: "17:00:00",
+        startHour: "18:00:00",
         endDate: "2020-10-18 17:00:00",
         user_id: "5ee8b233ce253b54a8066e4a",
         username: "orbita",
@@ -46,10 +47,10 @@ let scheduledPasscodes = [
     },
     {
         mappedLock: "1862957",
-        arrive: "2020-06-17 18:00:00",
+        arrive: "2020-06-17 19:00:00",
         nights: 1,
         startDate: "2020-06-17",
-        startHour: "17:00:00",
+        startHour: "18:00:00",
         endDate: "2020-10-18 17:00:00",
         user_id: "5ee8b233ce253b54a8066e4a",
         username: "orbita",
@@ -57,10 +58,10 @@ let scheduledPasscodes = [
     },
     {
         mappedLock: "1862957",
-        arrive: "2020-06-17 18:00:00",
+        arrive: "2020-06-17 19:00:00",
         nights: 1,
         startDate: "2020-06-17",
-        startHour: "17:00:00",
+        startHour: "18:00:00",
         endDate: "2020-10-18 17:00:00",
         user_id: "5ee8b233ce253b54a8066e4a",
         username: "orbita",
@@ -100,34 +101,31 @@ let scheduledPasscodes = [
     }
 ];
 
-const getIntHour = () => {
-
-}
-
 
 const pushToSQS = async (data) => {
+    const { mappedLock, arrive, nights, startDate, startHour, endDate, user_id, username, res_id } = data;
     let params = {
         MessageAttributes: {
             "mappedLockId": {
                 DataType: "String",
-                StringValue: data.mappedLock,
+                StringValue: mappedLock,
             },
             "arrive": {
                 DataType: "String",
-                StringValue: data.arrive
+                StringValue: arrive
             },
             "nights": {
-                DataType: "String",
-                StringValue: data.nights
+                DataType: "Number",
+                StringValue: String(nights),
             },
-            "startDate": { DataType: "String", StringValue: "2020-06-17" },
-            "startHour": { DataType: "String", StringValue: "17:00:00" },
-            "endDate": { DataType: "String", StringValue: "2020-10-18 17:00:00" },
-            "user_id": { DataType: "String", StringValue: "5ee8b233ce253b54a8066e4a" },
+            "startDate": { DataType: "String", StringValue: startDate },
+            "startHour": { DataType: "String", StringValue: startHour },
+            "endDate": { DataType: "String", StringValue: endDate },
+            "user_id": { DataType: "String", StringValue: user_id },
             "username": {
-                DataType: "String", StringValue: "orbita",
+                DataType: "String", StringValue: username
             },
-            "res_id": { DataType: "String", StringValue: "10334"},
+            "res_id": { DataType: "String", StringValue: res_id },
         },
         MessageBody: "Information about passcodes to be added",
         QueueUrl: passcodeScheduleSQSURL
@@ -151,6 +149,8 @@ const job = schedule.scheduleJob('0 */1 * * * *', async function () {
     passcodeToScheduleNow.forEach(PTSN => {
         if (PTSN.startHour === hourFilter) {
             pushToSQS(PTSN);
+        } else {
+            console.log("nothing to push");
         }
     });
 });
