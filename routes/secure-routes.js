@@ -319,6 +319,13 @@ router.post('/updatelockmap', async (req, res, next) => {
   } catch (error) {
     throw new Error(error);
   }
-})
+});
+
+router.post("/fakeres", async (req, res, next) => {
+  const { user: { _id: requestingUser, username } } = req;
+  const { AreaId, Arrive, Nights } = req.query;
+  let pushedData = await rManager.postResToSQS(requestingUser, {AreaId, Arrive, Nights, NetfoneCustomer: username});
+  console.log(pushedData);
+});
 
 module.exports = router;

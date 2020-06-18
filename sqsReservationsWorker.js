@@ -10,7 +10,7 @@ AWS.config.update({ region: SQS_REGION, accessKeyId: SQS_KEY, secretAccessKey: S
 const app = Consumer.create({
     queueUrl: SQS_URL,
     handleMessage: async (message) => {
-        console.log(message.Body);
+        console.log(message);
     },
     sqs: new AWS.SQS()
 });

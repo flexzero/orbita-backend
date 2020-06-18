@@ -1,6 +1,8 @@
 const axios = require("axios");
 const qs = require("querystring");
 const urls = require("../urls");
+const AWS = require("aws-sdk");
+require('dotenv').config();
 const md5 = require("md5");
 const { UserModel, TTLockAuthModel, NetfoneAuthModel } = require("../models/model");
 
@@ -12,6 +14,9 @@ class RemoteManage {
                 "Content-Type": "application/x-www-form-urlencoded",
             },
         };
+
+        const { env: { SQS_REGION, SQS_KEY, SQS_PASSWORD, SQS_URL } } = process;
+        AWS.config.update({ region: SQS_REGION, accessKeyId: SQS_KEY, secretAccessKey: SQS_PASSWORD, apiVersion: "2012-11-05" });
     }
 
     async identifyUser(userId) {
@@ -20,14 +25,15 @@ class RemoteManage {
             let currentUserTTLockAcc = await TTLockAuthModel.findOne({ _id: currentUser.ttlockAuthData });
             let currentUserNetfoneAcc = await NetfoneAuthModel.findOne({ _id: currentUser.netfoneAuthData });
             let { client_id: clientId, access_token: TTLockAccessToken } = currentUserTTLockAcc;
-            let { accessToken: netfoneAccessToken } = currentUserNetfoneAcc;
+            let { accessToken: netfoneAccessToken, netfoneUsername } = currentUserNetfoneAcc;
             return {
                 ttlockAuthData: {
                     clientId,
                     TTLockAccessToken
                 },
                 netfoneAuthData: {
-                    netfoneAccessToken
+                    netfoneAccessToken,
+                    netfoneUsername,
                 }
             }
         } catch (error) {
@@ -103,12 +109,15 @@ class RemoteManage {
         }
     }
 
-    async addPasscode(postData) {
+    async addPasscode(postData, requestingUser) {
+        let authData = await this.identifyUser(requestingUser);
+        const { ttlockAuthData: { clientId, TTLockAccessToken: accessToken } } = authData;
+
         const { lockId, passcode, passcodeName, startDate, endDate } = postData;
 
         const dataToPost = qs.stringify({
-            clientId: this.clientId,
-            accessToken: this.accessToken,
+            clientId,
+            accessToken,
             lockId,
             keyboardPwd: passcode,
             keyboardPwdName: passcodeName,
@@ -304,6 +313,16 @@ class RemoteManage {
         } catch (error) {
             throw new Error(error);
         }
+    }
+
+    async postResToSQS(requestingUser, postData) {
+        let authData = await this.identifyUser(requestingUser);
+        const { netfoneAuthData: {  netfoneUsername  } } = authData;
+        const { AreaId, Arrive, Nights } = postData;
+        let NetfoneCustomer = netfoneUsername;
+
+        console.log(AreaId, Arrive, Nights, NetfoneCustomer);
+        
     }
 }
 

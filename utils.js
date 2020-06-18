@@ -30,4 +30,11 @@ function NOW(str) {
   
   }
 
-  module.exports = NOW;
+  function generateRandomPasscode() {
+    return Math.floor(Math.random() * 100000000);
+  }
+
+  function generateRandomTwo() {
+  }
+
+  module.exports = { NOW, generateRandomPasscode };
