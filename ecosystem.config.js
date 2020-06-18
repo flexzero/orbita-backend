@@ -6,18 +6,23 @@ module.exports = {
     watch: '.',
   },
   {
-    name: 'sqsWorker',
-    script: 'sqsWorker.js',
+    name: 'sqsReservationsWorker',
+    script: 'sqsReservationsWorker.js',
     exec_mode: "cluster",
     instances: 2,
     watch: '.',
-  },{
+  }, {
     name: 'passcodeScheduler',
     script: 'passcodeScheduler.js',
     instances: '1',
+    watch: '.',
+  },
+  {
+    name: 'sqsPasscodesWorker',
+    script: 'sqsPasscodesWorker.js',
+    instance: '1',
     watch: '.'
   }],
-  
 
   deploy: {
     production: {

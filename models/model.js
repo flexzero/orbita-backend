@@ -144,11 +144,11 @@ const HotelRoomsSchema = new schema({
 
 const ReservationsDataSchema = new schema({
     area: { type: String, required: true, unique: true},
-    mappedLock: { type: String, required: false, unique: true, default: null},
+    mappedLock: { type: String, required: false, default: null, sparse: true},
     area_id: { type: String, required: true, unique: true},
     user_id: { type: mongoose.Types.ObjectId, ref: "Users" },
     username: { type: String, require: true },
-    res_id: { type: String, required: false, unique: true, default: null},
+    res_id: { type: String, required: false, unique: true, default: null, sparse: true},
     nights: { type: String, required: false, default: null},
     arrive: { type: String, required: false, default: null},
     pin_status: { type: String, required: false, default: null },

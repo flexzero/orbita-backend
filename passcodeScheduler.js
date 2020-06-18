@@ -6,7 +6,7 @@ require('dotenv').config();
 
 const { ScheduledPasscodeModel, PasscodesModel } = require("./models/model");
 
-const passcodeScheduleSQSURL = "https://sqs.ap-southeast-2.amazonaws.com/825974424523/orbita_passcode"
+const passcodeScheduleSQSURL = "https://sqs.ap-southeast-2.amazonaws.com/825974424523/orbita_passcode";
 
 mongoose.set('useCreateIndex', true);
 mongoose.set('useNewUrlParser', true);
@@ -15,8 +15,6 @@ mongoose.set('useCreateIndex', true);
 mongoose.set('useUnifiedTopology', true);
 
 const { env: { SQS_REGION, SQS_KEY, SQS_PASSWORD } } = process;
-
-console.log(SQS_KEY, SQS_PASSWORD);
 
 let mongoConnectStrRoot = ``
 
@@ -36,10 +34,10 @@ mongoose.Promise = global.Promise;
 let scheduledPasscodes = [
     {
         mappedLock: "1862957",
-        arrive: "2020-06-17 19:00:00",
+        arrive: "2020-06-17 11:00:00",
         nights: 1,
-        startDate: "2020-06-17",
-        startHour: "18:00:00",
+        startDate: "2020-06-18",
+        startHour: "10:00:00",
         endDate: "2020-10-18 17:00:00",
         user_id: "5ee8b233ce253b54a8066e4a",
         username: "orbita",
@@ -47,10 +45,10 @@ let scheduledPasscodes = [
     },
     {
         mappedLock: "1862957",
-        arrive: "2020-06-17 19:00:00",
+        arrive: "2020-06-17 11:00:00",
         nights: 1,
-        startDate: "2020-06-17",
-        startHour: "18:00:00",
+        startDate: "2020-06-18",
+        startHour: "10:00:00",
         endDate: "2020-10-18 17:00:00",
         user_id: "5ee8b233ce253b54a8066e4a",
         username: "orbita",
@@ -58,10 +56,10 @@ let scheduledPasscodes = [
     },
     {
         mappedLock: "1862957",
-        arrive: "2020-06-17 19:00:00",
+        arrive: "2020-06-17 11:00:00",
         nights: 1,
         startDate: "2020-06-17",
-        startHour: "18:00:00",
+        startHour: "10:00:00",
         endDate: "2020-10-18 17:00:00",
         user_id: "5ee8b233ce253b54a8066e4a",
         username: "orbita",
