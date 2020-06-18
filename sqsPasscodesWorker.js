@@ -11,8 +11,10 @@ AWS.config.update({ region: SQS_REGION, accessKeyId: SQS_KEY, secretAccessKey: S
 
 const app = Consumer.create({
     queueUrl: passcodeScheduleSQSURL,
+    messageAttributeNames: ['mappedLockId', 'arrive', 'nights', 'startDate', 'startHour', 'endDate', 'endHour', 'user_id', 'username', 'res_id'],
     handleMessage: async (message) => {
-        console.log(message);
+        let { MessageAttributes:messageAttr } = message;
+        console.log(messageAttr);
     },
     sqs: new AWS.SQS()
 });

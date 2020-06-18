@@ -22,9 +22,6 @@ const { env: { PORT, MONGO_HOST, MONGO_USERNAME, MONGO_PASSWORD, MONGO_PORT, MON
 
 let mongoConnectStr = "mongodb+srv://orbita:crazyorbita@cluster1-7rnzb.mongodb.net/orbita-test?retryWrites=true&w=majority";
 
-// MONGO_USERNAME === "" && MONGO_PASSWORD === "" ? mongoConnectStr = `mongodb://${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB_NAME}`
-//   : mongoConnectStr = `mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@${MONGO_HOST}:${MONGO_PORT}/${MONGO_DB_NAME}`;
-
 mongoose.connect(mongoConnectStr, { useNewUrlParser: true, useUnifiedTopology: true });
 mongoose.connection.on("error", (error) => console.log(error));
 mongoose.Promise = global.Promise;
@@ -47,51 +44,6 @@ app.use(function (err, req, res, next) {
 });
 
 
-const socketIOServer = app.listen(PORT, () => {
+app.listen(PORT, () => {
   console.log(`orbita server is running at ${PORT}`);
-});
-
-const io = socketIO(socketIOServer);
-
-let ch = null;
-let rootSocket = null;
-let messages = [];
-let i = 0;
-
-let baseTaskID = Math.round((Date.now() - 1511098000000) / 1000);
-
-amqp.connect('amqp://localhost', function (error, conn) {
-  if (error) {
-    console.log(error);
-    throw new Error(error);
-  }
-  conn.createChannel(function (error, channel) {
-    if (error) {
-      console.log(error);
-      throw new Error(error);
-    }
-    ch = channel;
-    ch.consume('reservations', function (msg) {
-      let messageObj = JSON.parse(msg.content.toString());
-      console.log(messageObj);
-      setTimeout(() => {
-        ch.ack(msg);
-      });
-    })
-  });
-});
-
-
-console.log('Server started');
-setInterval(() => i++, 2000);
-
-
-io.on("connection", (socket) => {
-  console.log("Connection opened");
-    setInterval(() => {
-      socket.emit("newTask", {
-        taskName: `Task ${baseTaskID + i}`,
-        taskID: baseTaskID + i
-    })
-    }, 5000);
 });

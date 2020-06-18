@@ -34,10 +34,10 @@ mongoose.Promise = global.Promise;
 let scheduledPasscodes = [
     {
         mappedLock: "1862957",
-        arrive: "2020-06-17 11:00:00",
+        arrive: "2020-06-17 13:00:00",
         nights: 1,
         startDate: "2020-06-18",
-        startHour: "10:00:00",
+        startHour: "12:00:00",
         endDate: "2020-10-18 17:00:00",
         user_id: "5ee8b233ce253b54a8066e4a",
         username: "orbita",
@@ -45,10 +45,10 @@ let scheduledPasscodes = [
     },
     {
         mappedLock: "1862957",
-        arrive: "2020-06-17 11:00:00",
+        arrive: "2020-06-17 12:00:00",
         nights: 1,
         startDate: "2020-06-18",
-        startHour: "10:00:00",
+        startHour: "11:00:00",
         endDate: "2020-10-18 17:00:00",
         user_id: "5ee8b233ce253b54a8066e4a",
         username: "orbita",
@@ -59,7 +59,7 @@ let scheduledPasscodes = [
         arrive: "2020-06-17 11:00:00",
         nights: 1,
         startDate: "2020-06-17",
-        startHour: "10:00:00",
+        startHour: "12:00:00",
         endDate: "2020-10-18 17:00:00",
         user_id: "5ee8b233ce253b54a8066e4a",
         username: "orbita",
@@ -148,7 +148,6 @@ const job = schedule.scheduleJob('0 */1 * * * *', async function () {
         if (PTSN.startHour === hourFilter) {
             pushToSQS(PTSN);
         } else {
-            console.log("nothing to push");
         }
     });
 });
