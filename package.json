@@ -19,6 +19,7 @@
     "fast-deep-equal": "^3.1.1",
     "jsonwebtoken": "^8.5.1",
     "md5": "^2.2.1",
+    "mongodb": "^3.5.9",
     "mongoose": "^5.9.6",
     "node-persist": "^3.0.5",
     "passport": "^0.4.1",

@@ -11,8 +11,6 @@ const NOW = require("../utils");
 const { LocksModel, PasscodesModel, RoomLockMapModel, HotelRoomsModel, ReservationsModel, ScheduledPasscodeModel } = require("../models/model");
 
 
-
-
 const router = express.Router();
 const rManager = new RemoteManage();
 
@@ -323,9 +321,15 @@ router.post('/updatelockmap', async (req, res, next) => {
 
 router.post("/fakeres", async (req, res, next) => {
   const { user: { _id: requestingUser, username } } = req;
-  const { AreaId, Arrive, Nights } = req.query;
-  let pushedData = await rManager.postResToSQS(requestingUser, {AreaId, Arrive, Nights, NetfoneCustomer: username});
-  console.log(pushedData);
+  const { AreaId, Arrive, Nights, Status, NetfoneCustomer, ReservationType } = req.query;
+  let pushedData = await rManager.postResToSQS(requestingUser, {AreaId, Arrive, Nights, NetfoneCustomer, Status, ReservationType });
+  if(pushedData !== undefined && pushedData.MessageId !== undefined) {
+    res.status(200).send({
+      status: "success",
+      message: "data has been pushed to sqs successfully"
+    })
+  }
+  
 });
 
 module.exports = router;

@@ -16,7 +16,9 @@ class RemoteManage {
         };
 
         const { env: { SQS_REGION, SQS_KEY, SQS_PASSWORD, SQS_URL } } = process;
-        AWS.config.update({ region: SQS_REGION, accessKeyId: SQS_KEY, secretAccessKey: SQS_PASSWORD, apiVersion: "2012-11-05" });
+        this.AWS = AWS.config.update({ region: SQS_REGION, accessKeyId: SQS_KEY, secretAccessKey: SQS_PASSWORD});
+        this.SQS = new AWS.SQS({apiVersion: "2012-11-05" });
+        this.SQS_QUEUE_URL = SQS_URL;
     }
 
     async identifyUser(userId) {
@@ -290,10 +292,16 @@ class RemoteManage {
         }
     }
 
-    async getReservations(userId) {
-        let authData = await this.identifyUser(userId);
-        const { netfoneAuthData: {  netfoneAccessToken: accessToken } } = authData;
-
+    async getReservations({userId, userName}) {
+        let accessToken = null;
+        if(userId === null && userName !== null) {
+            let netfoneUserData = await NetfoneAuthModel.findOne({netfoneUsername: userName});
+                accessToken = netfoneUserData.accessToken;
+        } else {
+            let authData = await this.identifyUser(userId);
+            // const { netfoneAuthData: {  netfoneAccessToken: accessToken } } = authData;
+            accessToken = authData.netfoneAuthData.netfoneAccessToken;
+        }
         const header = {
             headers: {
                 'Content-Type': 'application/json',
@@ -316,13 +324,44 @@ class RemoteManage {
     }
 
     async postResToSQS(requestingUser, postData) {
-        let authData = await this.identifyUser(requestingUser);
-        const { netfoneAuthData: {  netfoneUsername  } } = authData;
-        const { AreaId, Arrive, Nights } = postData;
-        let NetfoneCustomer = netfoneUsername;
-
-        console.log(AreaId, Arrive, Nights, NetfoneCustomer);
+        const { AreaId, Arrive, Nights, NetfoneCustomer, Status, ReservationType } = postData;
+        let ResId = String(Math.floor(Math.random() * 10000));
+        let AccountId = String(Math.floor(Math.random() * 10000));
+        let AreaName = "303B";
         
+        let params = {
+            MessageAttributes: {
+                "NetfoneCustomer": {
+                    DataType: "String",
+                    StringValue: NetfoneCustomer,
+                },
+                "AccountId": {
+                    DataType: "String",
+                    StringValue: AccountId
+                },
+                "ResId": {
+                    DataType: "Number",
+                    StringValue: ResId,
+                },
+                "Nights": {
+                    DataType: "Number",
+                    StringValue: String(Nights),
+                },
+                "AreaId": { DataType: "String", StringValue: AreaId },
+                "AreaName": { DataType: "String", StringValue: AreaName },
+                "Arrive": { DataType: "String", StringValue: Arrive },
+                "Status": { DataType: "String", StringValue: Status },
+                "ReservationType": { DataType: "String", StringValue: ReservationType }
+            },
+            MessageBody: "Information about reservation to be added",
+            QueueUrl: this.SQS_QUEUE_URL,
+        }
+        try {
+            let isDataPushed = await this.SQS.sendMessage(params).promise();
+            return isDataPushed;
+        } catch (error) {
+            console.log(error)
+        }
     }
 }
 

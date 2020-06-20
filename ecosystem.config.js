@@ -8,8 +8,7 @@ module.exports = {
   {
     name: 'sqsReservationsWorker',
     script: 'sqsReservationsWorker.js',
-    exec_mode: "cluster",
-    instances: 2,
+    instances: 1,
     watch: '.',
   }, {
     name: 'passcodeScheduler',

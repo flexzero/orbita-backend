@@ -45,7 +45,7 @@ passport.use(
           client_secret: ttlockClientSecret,
         });
         const netfoneAuth = await NetfoneAuthModel.create({ _id: new mongoose.Types.ObjectId(), netfoneUsername, netfonePassword });
-        const user = await UserModel.create({ _id: new mongoose.Types.ObjectId(), username, password, 
+        const user = await UserModel.create({ _id: new mongoose.Types.ObjectId(), username, password, ttlockAuthData: ttlockAuth._id, netfoneAuthData: netfoneAuth._id
          });
         return done(null, user);
       } catch (error) {

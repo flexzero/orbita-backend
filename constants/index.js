@@ -1,4 +1,9 @@
-const ADD_PASSCODE = "ADD_PASSCODE";
-const DELETE_PASSCODE = "DELETE_PASSCODE";
+const resStatuses = {
+    STATUS_UNCONFIRMED: "Unconfirmed",
+    STATUS_CONFIRMED: "Confirmed",
+    STATUS_CONFIRMED: "Confirmed",
+    STATUS_ARRIVED: "Arrived",
+    STATUS_DEPARTED: "Departed",
+}
 
-module.exports = { ADD_PASSCODE, DELETE_PASSCODE };
+module.exports = { resStatuses };

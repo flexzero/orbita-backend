@@ -153,7 +153,8 @@ const ReservationsDataSchema = new schema({
     arrive: { type: String, required: false, default: null},
     pin_status: { type: String, required: false, default: null },
     total_rate: { type: String, required: false, default: null},
-    status: { type: String, required: false, default: null}
+    status: { type: String, required: false, default: null},
+    ScheduledPasscode: { type: mongoose.Types.ObjectId, ref: "ScheduledPasscode"},
 }, { versionKey: false, ObjectId: false, _id: false, id: false});
 
 const RoomLockMap = new schema({
