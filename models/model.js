@@ -139,23 +139,20 @@ const HotelRoomsSchema = new schema({
   area: { type: String, required: true, unique: true },
   area_id: { type:String, required: true, unique: true },
   cat_id: { type: Number, required: false, default: null },
+  reservation:  { type: mongoose.Types.ObjectId, ref: "Reservations"},
   
 }, {versionKey: false});
 
 const ReservationsDataSchema = new schema({
-    area: { type: String, required: true, unique: true},
-    mappedLock: { type: String, required: false, default: null, sparse: true},
-    area_id: { type: String, required: true, unique: true},
+    area_id: { type: String, required: true, sparse: true, default: 0},
     user_id: { type: mongoose.Types.ObjectId, ref: "Users" },
     username: { type: String, require: true },
-    res_id: { type: String, required: false, unique: true, default: null, sparse: true},
-    nights: { type: String, required: false, default: null},
-    arrive: { type: String, required: false, default: null},
-    pin_status: { type: String, required: false, default: null },
-    total_rate: { type: String, required: false, default: null},
-    status: { type: String, required: false, default: null},
-    ScheduledPasscode: { type: mongoose.Types.ObjectId, ref: "ScheduledPasscode"},
-}, { versionKey: false, ObjectId: false, _id: false, id: false});
+    res_id: { type: String, required: true, unique: true, sparse: true},
+    nights: { type: String, required: true},
+    arrive: { type: String, required: true},
+    status: { type: String, required: true},
+    scheduled_passcode: { type: mongoose.Types.ObjectId, ref: "ScheduledPasscode", default: null},
+});
 
 const RoomLockMap = new schema({
   user_id: {  type: mongoose.Types.ObjectId, ref: "Users"},
@@ -168,11 +165,11 @@ const ScheduledPasscode = new schema({
   user_id: {  type: mongoose.Types.ObjectId, ref: "Users"},
   username: { type: String, required: false },
   res_id: { type: String, required: true},
-  date: {type: String, require: true},
   mappedLock: { type: String, required: true, default: null },
   arrive: { type: String, default: null},
   nights: { type: Number, default: null},
   startDate: { type: String, required: true, default: null},
+  startHour: { type: String, required: true, default: null},
   endDate: { type: String, required: true, default: null},
 
 });

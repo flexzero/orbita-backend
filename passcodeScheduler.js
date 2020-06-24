@@ -64,22 +64,25 @@ const pushToSQS = async (data) => {
 }
 
 
-const job = schedule.scheduleJob('0 0 */1 * * *', async function () {
+const job = schedule.scheduleJob('0 */1 * * * *', async function () {
 
     let todaysDate = new Date();
     todaysDate.setMinutes(0);
     todaysDate.setSeconds(0)
     todaysDate = NOW(todaysDate);
     let [dateFilter, hourFilter] = todaysDate.split(" ");
-    let scheduledPasscodes = PasscodesModel.find({ dateFilter })
+    let scheduledPasscodes = await ScheduledPasscodeModel.find({ startDate: dateFilter });
+    console.log(scheduledPasscodes);
     let passcodeToScheduleNow = scheduledPasscodes.filter((SP => {
         return SP.startDate === dateFilter
     }));
 
+    console.log("Hello...");
+
     passcodeToScheduleNow.forEach(PTSN => {
         if (PTSN.startHour === hourFilter) {
             console.log('generating passcode');
-            pushToSQS(PTSN);
+            //pushToSQS(PTSN);
         } else {
         }
     });

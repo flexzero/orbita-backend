@@ -2,6 +2,7 @@ const axios = require("axios");
 const qs = require("querystring");
 const urls = require("../urls");
 const AWS = require("aws-sdk");
+const { NOW } = require("../utils");
 require('dotenv').config();
 const md5 = require("md5");
 const { UserModel, TTLockAuthModel, NetfoneAuthModel } = require("../models/model");
@@ -271,7 +272,6 @@ class RemoteManage {
     async getRooms(userId) {
         let authData = await this.identifyUser(userId);
         const { netfoneAuthData: { netfoneAccessToken: accessToken } } = authData;
-
         const header = {
             headers: {
                 'Content-Type': 'application/json',
@@ -297,10 +297,12 @@ class RemoteManage {
         if(userId === null && userName !== null) {
             let netfoneUserData = await NetfoneAuthModel.findOne({netfoneUsername: userName});
                 accessToken = netfoneUserData.accessToken;
-        } else {
+                console.log("access token: ", accessToken);
+        } else if(userId !== null && userName === null) {
             let authData = await this.identifyUser(userId);
-            // const { netfoneAuthData: {  netfoneAccessToken: accessToken } } = authData;
-            accessToken = authData.netfoneAuthData.netfoneAccessToken;
+            const { netfoneAuthData: {  netfoneAccessToken} } = authData;
+            accessToken = netfoneAccessToken;
+            console.log(accessToken);
         }
         const header = {
             headers: {
@@ -308,14 +310,15 @@ class RemoteManage {
                 'Authorization': `Bearer ${accessToken}`
             }
         }
-
+        console.log(new Date());
         const dataToPost = JSON.stringify({
             query: 'query ($input: ReservationsGetInput!) {\n    getReservations(input: $input) {\n        res_id\n        room {\n            area\n            area_id\n        }\n        nights\n        arrive\n        total_rate\n        status\n    }\n}',
-            variables: {"input":{"created_from":"2020-02-22T17:11:57+00:00"}
+            variables: {"input":{"created_from":`${NOW(new Date())}`}
         }});
 
         try {
             const response = await axios.post(urls.netfoneGraphQL, dataToPost, header);
+            console.log(response.data);
             let {data: { data: { getReservations }}} = response;
             return getReservations;
         } catch (error) {
@@ -324,8 +327,14 @@ class RemoteManage {
     }
 
     async postResToSQS(requestingUser, postData) {
-        const { AreaId, Arrive, Nights, NetfoneCustomer, Status, ReservationType } = postData;
-        let ResId = String(Math.floor(Math.random() * 10000));
+        let { AreaId, Arrive, Nights, NetfoneCustomer, Status, ReservationType, ResId } = postData;
+        let newResId = null;
+        if(ResId === undefined) {
+            newResId = String(Math.floor(Math.random() * 10000));
+        } else {
+            newResId = ResId;
+        }
+        console.log(newResId);
         let AccountId = String(Math.floor(Math.random() * 10000));
         let AreaName = "303B";
         
@@ -341,7 +350,7 @@ class RemoteManage {
                 },
                 "ResId": {
                     DataType: "Number",
-                    StringValue: ResId,
+                    StringValue: newResId,
                 },
                 "Nights": {
                     DataType: "Number",

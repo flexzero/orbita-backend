@@ -7,7 +7,7 @@ const RemoteManage = require("../RemoteManage/RemoteMange");
 const storage = require("node-persist");
 const equal = require("fast-deep-equal");
 const fs = require("fs");
-const NOW = require("../utils");
+const { NOW } = require("../utils");
 const { LocksModel, PasscodesModel, RoomLockMapModel, HotelRoomsModel, ReservationsModel, ScheduledPasscodeModel } = require("../models/model");
 
 
@@ -204,7 +204,9 @@ router.get("/rooms", async (req, res, next) => {
       return room;
     });
 
-    let reservationsFromHotel = await rManager.getReservations(requestingUser);
+    let reservationsFromHotel = await rManager.getReservations({userId: requestingUser, userName: null});
+
+    console.log("reservation from hotel: ", reservationsFromHotel);
 
     let noDeparted = reservationsFromHotel.filter(res => {
       return res.status !== 'Departed';
@@ -273,6 +275,7 @@ router.get("/rooms", async (req, res, next) => {
 
     let reservationsFromDB = ReservationsModel.find({ user_id: requestingUser }, { _id: 0 });
     if (!equal(roomReservationsMap, reservationsFromDB)) {
+      console.log(roomReservationsMap);
       await ReservationsModel.deleteMany({ user_id: requestingUser });
       await ReservationsModel.insertMany(roomReservationsMap);
     }
@@ -321,8 +324,8 @@ router.post('/updatelockmap', async (req, res, next) => {
 
 router.post("/fakeres", async (req, res, next) => {
   const { user: { _id: requestingUser, username } } = req;
-  const { AreaId, Arrive, Nights, Status, NetfoneCustomer, ReservationType } = req.query;
-  let pushedData = await rManager.postResToSQS(requestingUser, {AreaId, Arrive, Nights, NetfoneCustomer, Status, ReservationType });
+  const { ResId, AreaId, Arrive, Nights, Status, NetfoneCustomer, ReservationType } = req.query;
+  let pushedData = await rManager.postResToSQS(requestingUser, {AreaId, Arrive, Nights, NetfoneCustomer, Status, ReservationType, ResId });
   if(pushedData !== undefined && pushedData.MessageId !== undefined) {
     res.status(200).send({
       status: "success",

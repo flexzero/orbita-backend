@@ -60,8 +60,10 @@ router.post("/login", async (req, res, next) => {
 
 
           let netfoneAuthFromDB = await NetfoneAuthModel.findOne({ _id: netfoneAuthId });
-          if (netfoneAuthFromDB.access_token === null) {
+          console.log(netfoneAuthFromDB);
+          if (netfoneAuthFromDB.accessToken === null) {
             let authDataFromNetfoneServer = await getNetfoneAuthData(netfoneAuthFromDB);
+            console.log(authDataFromNetfoneServer);
             const netfoneFilter = { _id: netfoneAuthId };
             const netfoneUpdate = { accessToken: authDataFromNetfoneServer, loggedin_at: Date.now() };
             let updatedNetfoneDataToDB = await NetfoneAuthModel.findOneAndUpdate(netfoneFilter, netfoneUpdate);
